@@ -1,0 +1,6 @@
+recursive-include stationexec/built_in *
+recursive-include stationexec/cli/launcher *
+recursive-include stationexec/cli/templates *
+recursive-include stationexec/ui *
+global-exclude *.py[co]
+
