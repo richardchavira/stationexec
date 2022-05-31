@@ -22,13 +22,13 @@ Installation Options
 **From distributed package**::
 
     # Windows
-    pip install stationexec-<version>-py2.py3-none-any.whl
+    pip install stationexec-<version>-py3-none-any.whl
 
     # Linux as User
-    pip install --user stationexec-<version>-py2.py3-none-any.whl
+    pip install --user stationexec-<version>-py3-none-any.whl
 
     # Linux as Root
-    sudo pip install stationexec-<version>-py2.py3-none-any.whl
+    sudo pip install stationexec-<version>-py3-none-any.whl
 
 **Running From Repository Clone**::
 
@@ -38,11 +38,11 @@ Installation Options
 
 **Python Virtualenv**::
 
-    # Fedora (change 2 to 3 for Python 3) - Run in project folder
-    sudo yum install python2-virtualenv
-    virtualenv-2 env2
-    source env2/bin/activate
-    pip install stationexec-<version>-py2.py3-none-any.whl
+    # Fedora  - Run in project folder
+    sudo yum install python3-virtualenv
+    virtualenv-3 env3
+    source env3/bin/activate
+    pip install stationexec-<version>-py3-none-any.whl
 
 Platform Support
 ----------------
@@ -51,7 +51,7 @@ Platform Support
 
 | **OS**     | **32bit**  | **64bit**  |**Python Version**  | **Tested**                         |
 |------------|------------|------------|--------------------|------------------------------------|
-| Windows    |  Untested  |   Yes      | 2.7.9+, 3.6        | Windows 10                         |
-| Linux      |  Untested  |   Yes      | 2.7.9+, 3.6        | Fedora 28/29, Centos 7, Ubuntu 16+ |
-| ARM        |  Yes       |   Yes      | 2.7.9+, 3.6        | Debian                             |
-| Mac        |  Untested  |   Yes      | 2.7.9+             | OSX 10.10+                         |
+| Windows    |  Untested  |   Yes      | 3.6+               | Windows 10                         |
+| Linux      |  Untested  |   Yes      | 3.6+               | Fedora 28/29, Centos 7, Ubuntu 16+ |
+| ARM        |  Yes       |   Yes      | 3.6+               | Debian                             |
+| Mac        |  Untested  |   Yes      | 3.6+               | OSX 10.10+                         |
