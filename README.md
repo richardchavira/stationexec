@@ -1,34 +1,60 @@
-# stationexec installation
-Note:  conflict with arrow library
-install arrow 0.17.0 first
+Station Executive
+=================
+Station Executive is a light-weight, flexible software framework for sequencing tasks and interacting with external
+data sources - including physical hardware - in a networked context.
 
-pip install arrow==0.17.0
+Each `Station` is comprised of a series of `operations` and a set of `Tools`. The `operations` are intelligently
+executed based upon data-flow dependencies and in parallel (as OS and hardware support allows). A `tool` is any
+source or sink of data that can be used to accomplish the tasks (anything from a robot to a database).
 
 
+Quick Start
+-----------
+**Run in command line (after installation):**::
 
-First:
-download and install stationexec
+    se-hello 8888
 
-pip install stationexec-1.1.0-py2.py3-none-any.whl
+Open your browser and navigate to 'http://localhost:8888' to view the main UI.
 
-Note: this will install several helper scripts...
-se-hello
-se-launch
-se-station
-se-tool
-se-setup
 
-if they do not run add the script location to your path.
-(easy way to see where they were installed is to try to uninstall stationexec  -- pip uninstall stationexec    it will ask if you are sure and display the location)
+Installation Options
+--------------------
+**From distributed package**::
 
-run se-setup after install
+    # Windows
+    pip install stationexec-<version>-py2.py3-none-any.whl
 
-this will create stationexec folder
+    # Linux as User
+    pip install --user stationexec-<version>-py2.py3-none-any.whl
 
-(linux/mac) ~/stationexec
-(windows) c:\stationexec
+    # Linux as Root
+    sudo pip install stationexec-<version>-py2.py3-none-any.whl
 
-If this is good you can test your installation by running
-se-hello
+**Running From Repository Clone**::
 
-This will launch the example station.
+    # Editable installation
+    pip install -e .
+    se-hello 8888
+
+**Python Virtualenv**::
+
+    # Fedora (change 2 to 3 for Python 3) - Run in project folder
+    sudo yum install python2-virtualenv
+    virtualenv-2 env2
+    source env2/bin/activate
+    pip install stationexec-<version>-py2.py3-none-any.whl
+
+Platform Support
+----------------
+
++------------+------------+------------+--------------------+------------------------------------+
+| **OS**     | **32bit**  | **64bit**  |**Python Version**  | **Tested**                         |
++------------+------------+------------+--------------------+------------------------------------+
+| Windows    |  Untested  |   Yes      | 2.7.9+, 3.6        | Windows 10                         |
++------------+------------+------------+--------------------+------------------------------------+
+| Linux      |  Untested  |   Yes      | 2.7.9+, 3.6        | Fedora 28/29, Centos 7, Ubuntu 16+ |
++------------+------------+------------+--------------------+------------------------------------+
+| ARM        |  Yes       |   Yes      | 2.7.9+, 3.6        | Debian                             |
++------------+------------+------------+--------------------+------------------------------------+
+| Mac        |  Untested  |   Yes      | 2.7.9+             | OSX 10.10+                         |
++------------+------------+------------+--------------------+------------------------------------+
