@@ -1,0 +1,459 @@
+:root {
+    --header-height: 50px;
+    --sidebar-width: 10px;
+    --header-z-index: 1;
+    --modal-z-index: 2;
+    --theme-primary-color: #221a50;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    margin: 2px 0;
+    color: #333333;
+}
+
+/**************************************************/
+
+.header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: var(--header-height);
+    line-height: var(--header-height);
+    width: 100%;
+    background: #cccccc;
+    z-index: var(--header-z-index);
+}
+
+.header-title {
+    font-weight: bold;
+    font-size: x-large;
+    padding: 0 10px;
+    color: #333333;
+}
+
+.header-title-link {
+    text-decoration: none;
+}
+
+.header-nav-list {
+    float: right;
+    padding-left: 0;
+    list-style-type: none;
+    margin: 0
+}
+
+.header ul li {
+    float: left;
+    padding: 0 10px;
+}
+
+.header-nav-link {
+    text-decoration: none;
+    display: block;
+}
+
+.header-nav-text {
+    font-weight: bold;
+    color: #333333;
+}
+
+.active-nav-link {
+    background: #AAA
+}
+
+@media all and (max-width: 750px) {
+    .header-title {
+        display: none;
+    }
+
+    .header-nav-list {
+        float: none !important;
+        display: flex;
+        justify-content: center;
+    }
+
+    .header-nav-text-name {
+        display: none;
+    }
+
+    .station-clock {
+        font-size: 1.5em !important;
+    }
+}
+
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: var(--sidebar-width);
+    background: var(--theme-primary-color);
+}
+
+#main {
+    padding-top: var(--header-height);
+    padding-left: calc(10px + var(--sidebar-width));
+}
+#main:after {
+    /* https://stackoverflow.com/a/10849233 */
+    content : "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity : 0.02;
+    z-index: -1;
+    background: url(/static/icon/stationexec-logo.png) no-repeat center center fixed;
+}
+
+#main div {
+    padding-top: 2px;
+    padding-bottom: 5px;
+}
+
+/**************************************************/
+
+.icon-container-g {
+}
+
+.icon-container-svg {
+    display: inline;
+    padding-left: 0.25em;
+    padding-right: 0.25em;
+    position: relative;
+    top: 0.125em;
+}
+
+/**************************************************/
+
+.message-view-control {
+    width: 60%;
+    height: 175px;
+}
+
+/**************************************************/
+
+.station-status-block {
+    width: 92vw;
+    border-radius: 5px;
+    padding-bottom: 20px;
+}
+.ssb-ready {
+    background: rgba(0, 255, 0, 0.5);
+}
+.ssb-running {
+    background: rgba(0, 0, 255, 0.5);
+}
+.ssb-down {
+    background: rgba(255, 0, 0, 0.5);
+}
+.station-status-text {
+    line-height: 0.8;
+    margin: 0 1vw;
+    text-transform: capitalize;
+    font-weight: bold;
+    font-size: 9em;
+    display: inline-block;
+    width: 100%;
+}
+.station-status-description {
+    margin: 20px 2vw;
+    font-size: 1.2em;
+    display: inline-block;
+    width: 100%;
+}
+.station-status-buttons {
+    display: inline-block;
+    width: 100%;
+}
+.station-clock {
+    position: fixed;
+    left: 3vw;
+    bottom: 2vw;
+    font-weight: bold;
+    font-size: 4.5em;
+}
+.station-shutdown-button {
+    position: fixed;
+    right: 8vw;
+    bottom: 2vw;
+}
+.actionbutton {
+    display: inline-block;
+    margin: 10px;
+}
+/* https://css-tricks.com/overriding-default-button-styles/ */
+.se-button {
+    background: rgb(116, 92, 214);
+    border: 0;
+    border-radius: 5px;
+    color: white;
+    font-size: 1em;
+    line-height: 1.2;
+    padding: 0.5em 0.75em;
+    cursor: pointer;
+}
+.se-button:disabled {
+    color: #a0a0a0;
+    cursor: default;
+}
+
+.station-history-table {
+    border-collapse: collapse;
+    text-align: left
+}
+.station-history-table tr:nth-child(odd) {
+  background: rgb(238, 238, 238)
+}
+.station-history-table td, th {
+    padding: 0.4em 1.5em;
+}
+.station-history-result-pass {
+    background: rgba(0, 255, 0, 0.5)
+}
+.station-history-result-fail {
+    background: rgba(255, 0, 0, 0.5)
+}
+
+/**************************************************/
+
+.report-sequence-view {
+    font-family: monospace;
+}
+
+.operation-history-table {
+    border-collapse: collapse;
+    text-align: left
+}
+.operation-history-table tr:nth-child(odd) {
+  background: rgba(238, 238, 238, 0.4)
+}
+.operation-history-table tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.4)
+}
+.operation-history-result-pass {
+    background: rgba(0, 255, 0, 0.5)
+}
+.operation-history-result-else {
+    background: rgba(255, 0, 0, 0.5)
+}
+.operation-history-table-drawer-cell {
+    padding-left: 0.1em !important;
+}
+.operation-history-table td, th {
+    padding: 0.4em 1.5em;
+}
+.operation-history-table-result-row {
+    background: rgba(200, 200, 200, 0.5);
+    height: 5em;
+}
+.operation-history-table-result-criteria {
+    background: rgba(200, 200, 200, 0.5);
+    padding: 0px 3px;
+}
+
+.report-container {
+    width: 55vw;
+    margin-left: auto;
+    margin-right: auto;
+}
+.report-select-container {
+    margin-left: auto;
+    margin-right: auto;
+    float: left;
+}
+.report-detail-container {
+    margin-left: auto;
+    margin-right: auto;
+    float: right;
+}
+
+/**************************************************/
+
+.tool-status {
+}
+
+.tool-status-list {
+    list-style-type: none;
+    padding-left: 0;
+    padding-inline-start: 0;
+    margin-block-start: 0;
+}
+
+.tool-status-item {
+    float: left;
+    padding: 3px 15px 3px 3px;
+}
+
+.tool-status-item-active {
+    background: #DDD;
+}
+
+.tool-status-link {
+    text-decoration: none;
+}
+
+.tool-status-text {
+    font-weight: bold;
+    color: #333333;
+}
+
+.tool-page-user-ui {
+    margin-top: 10px
+}
+
+/**************************************************/
+
+.station-loaded-html {
+
+}
+
+/**************************************************/
+
+.sequence-holder {
+}
+
+#sequence-graph {
+    margin-top: 10px;
+    margin-left: 20px;
+    height: 23vh;
+    width: calc(100vw - 400px);
+}
+
+#top-group, #bottom-group {
+    display: none;
+}
+
+.sequence-active-operations {
+    position: absolute;
+    right: 10px;
+    display: flex;
+    margin-top: 10px;
+    width: 320px;
+    height: 65vh;
+    overflow: hidden;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+.sequence-active-operations-left {
+    width: 160px;
+    height: 100%;
+    overflow: hidden;
+    overflow-y: auto;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+.sequence-active-operations-right {
+    height: 100%;
+    width: 160px;
+    overflow: hidden;
+    overflow-y: auto;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+.sequence-graph-edges {
+    stroke: #777;
+    stroke-width: 3px;
+}
+
+.progress-circle-outer {
+    fill: rgba(170, 170, 170, 1.0);
+}
+
+.progress-circle-inner {
+    fill: rgba(255, 255, 255, 1.0);
+}
+
+.progress-circle-hover {
+    fill: rgba(255, 255, 255, 0.0);
+}
+
+.is-progress-hover {
+    fill: rgba(243, 156, 18, 1.0);
+}
+
+.progress-circle-center {
+    fill: rgba(150, 150, 150, 1.0);
+}
+
+.progress-circle-fill {
+    /*fill: rgba(53, 110, 195, 1.0);*/
+    fill: #4e3eab;
+}
+
+.cluster {
+    fill: none;
+    stroke: #777;
+    stroke-width: 2px;
+}
+
+@keyframes rotation {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(359deg);
+    }
+}
+
+.progress-circle-rotate {
+    animation: rotation 1.5s infinite linear;
+}
+
+.sequence-graph-hover-box {
+    position: absolute;
+    margin-top: 15px;
+    margin-left: 20px;
+}
+
+/**************************************************/
+
+.help-page-links {
+    display: block;
+    float: left;
+}
+
+.help-page-doc-viewer {
+    display: block;
+    float: right;
+    width: 80vw;
+    height: 90vh;
+}
+
+/**************************************************/
+
+.modal-popup-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: var(--modal-z-index);
+    height: 100%;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-popup-card {
+    width: 55%;
+    margin: auto;
+    overflow-y: auto;
+    max-height: 70%;
+    min-height: 20%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(240, 240, 240, 1);
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+/**************************************************/
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans,
+                Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}

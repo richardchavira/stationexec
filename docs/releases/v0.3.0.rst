@@ -1,0 +1,20 @@
+What's new in Station Exec 0.3.0
+================================
+
+June 2, 2018
+------------
+
+::
+
+    New features:
+    * Built-in hello-world example
+    * Results storage to database
+    * Local database storage
+    * Offline mode
+    * Working user login
+    * New Station registration
+    * Local status logging to file
+    * Updated asynchronous tool base
+    * Formatting cleanup
+    * Usability tweaks
+    * Early UI Updates

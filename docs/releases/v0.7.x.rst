@@ -1,0 +1,46 @@
+What's new in Station Exec 0.7.4
+================================
+
+May 31, 2019
+------------
+::
+
+    * Release Cleanup
+    * UI
+        * Tool wrapper UI to reduce boilerplate
+        * Station UI wrapper to reduce boilerplate
+    * New queue/thread for handling button presses from UI (lower thread overhead)
+    * UI commands now come through the websocket for faster processing
+    * Added a few new events for later use
+
+What's new in Station Exec 0.7.3
+================================
+
+May 22, 2019
+------------
+::
+
+    * New Flexible Data Storage methodology
+        * Event Based Storage/Retrieval
+        * Built-In SQLite/MySQL Tool
+    * System Updates
+        * Permanent Installation Folder
+        * Event Infrastructure
+        * New CLI Tools
+        * Code Cleanup
+        * Modularization for Testing
+        * Critical Module Access Restriction
+        * Removal of Outmoded Ideas
+    * Tool Updates
+        * Overhaul of Check-In/Check-Out Procedure
+        * Simplified Tool Requirements
+        * Refactor of Tool Creation in Toolbox for Flexibility
+    * Merging Station into Executive
+
+
+Station Exec 0.7.0, 0.7.1, 0.7.2
+================================
+::
+
+    * Internal development releases
+

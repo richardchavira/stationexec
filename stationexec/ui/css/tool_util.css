@@ -1,0 +1,91 @@
+.icon-container-g {
+}
+
+.icon-container-svg {
+    display: inline;
+    padding-left: 0.25em;
+    padding-right: 0.25em;
+    position: relative;
+    top: 0.125em;
+}
+
+.message-view-control {
+    width: 100%;
+    height: 150px;
+}
+
+.tool-status {
+}
+
+.tool-status-list {
+    list-style-type: none;
+    padding-left: 0;
+    padding-inline-start: 0;
+    margin-block-start: 0;
+}
+
+.tool-status-item {
+    float: left;
+    padding-right: 15px;
+}
+
+.tool-status-link {
+    text-decoration: none;
+}
+
+.tool-status-text {
+    font-weight: bold;
+    color: #333333;
+}
+
+/* https://css-tricks.com/overriding-default-button-styles/ */
+.se-button {
+    background: rgb(116, 92, 214);
+    border: 0;
+    border-radius: 5px;
+    color: white;
+    font-size: 1em;
+    line-height: 1.2;
+    padding: 0.5em 0.75em;
+    cursor: pointer;
+}
+.se-button:disabled {
+    color: #a0a0a0;
+    cursor: default;
+}
+
+/**************************************************/
+
+.modal-popup-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: var(--modal-z-index);
+    height: 100%;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.modal-popup-card {
+    width: 55%;
+    margin: auto;
+    overflow-y: auto;
+    max-height: 70%;
+    min-height: 20%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(240, 240, 240, 1);
+    border-radius: 10px;
+    font-weight: bold;
+}
+
+/**************************************************/
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans,
+                Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}

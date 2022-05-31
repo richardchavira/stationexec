@@ -1,0 +1,110 @@
+What's new in Station Exec 0.5.6
+================================
+
+December 4, 2018
+-----------------
+
+::
+
+    * New ability to send data from tools to UI elements
+    * Fixed issue with blocking TCP during standalone tool operation
+    * Ability to manually affect the station status
+
+What's new in Station Exec 0.5.5
+================================
+
+November 26, 2018
+-----------------
+
+::
+
+    * New Serial Modbus built-in tool
+    * Stock now returns 'id' in addition to quantity
+    * Ability to clear all stock and start over
+
+What's new in Station Exec 0.5.4
+================================
+
+November 26, 2018
+-----------------
+
+::
+
+    * Fixing issues with UI logging
+    * Fixing issues with stock tracking in sequence
+
+What's new in Station Exec 0.5.3
+================================
+
+November 20, 2018
+-----------------
+
+::
+
+    * Sequence Looping
+    * Stock tracking
+
+What's new in Station Exec 0.5.2
+================================
+
+October 30, 2018
+----------------
+
+::
+
+    * Fix to the station and tool templates to have more accurate information and to generate items that
+       are actually executable
+    * se-gen cli utility creates the necessary python files so that all modules are discoverable
+    * se-gen station creates a bare-bones launcher json file and places it in the working directory
+
+What's new in Station Exec 0.5.1
+================================
+
+October 17, 2018
+----------------
+
+::
+
+    * Bug fix - station did not implement correct version of a method, which caused a crash
+    * Removed opencv-python from base requirements
+
+What's new in Station Exec 0.5.0
+================================
+
+October 15, 2018
+----------------
+
+::
+
+    * Command Line Interface Utilities
+        * Huge update to how stationexec works from the user's perspective (much easier!)
+        * Launch stationexec, generate tools and stations, debugging tools, and more
+    * Move to internal repository
+        * Reworking of project structure to split stationexec, stations, and tools into separate development efforts
+        * Numerous style changes - internal repo has aggressive lint and style opinions
+    * UI Re-architecture
+        * Broke up monolithic javascript file that was managing UI view - decentralized the UI
+        * Now gives slightly better performance and much better extensibility for WAY less effort and complexity
+        * Much easier to add new pages and navigate more easily
+        * By default, UI navigates between Station and Tool control pages
+        * Printing of messages from sequence and tools to the UI
+    * Station Updates
+        * Massive improvements based on experience with Cleaning and Subway stations
+    * Sequence Updates
+        * Now can reuse operations multiple times just from operations.json
+        * Station calls at beginning and end of sequence more stable
+        * Early support for submission of jobs to Algorithm Server
+    * Tool Updates
+        * Running tools moved to a new CLI utility that takes care of path issues
+        * Support for synchronous command/response in asynctool
+        * Improved Meca500 driver - now supports hardware R2 and R3
+        * Improved operation of magnemotion driver
+        * Camera base improved drastically and now makes deriving cameras much easier
+        * Basler/Cleaning Camera updated - solid streaming, image processing
+        * Brought IDS up to date - now also a solid streaming and acquisition camera
+        * Added LED Control
+    * Updated Developer Guide to reflect current status of project - especially to incorporate CLI Utilities
+    * Usability and stability fixes - here are a few:
+        * Stationexec no longer checks for dependencies on load - now a manual CLI process (much more efficient)
+        * Cleaned up log file for standard run so that critical information is more easily readable
+    * Style improvements

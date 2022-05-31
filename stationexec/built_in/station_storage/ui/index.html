@@ -1,0 +1,218 @@
+<div>
+    <button type="button" class="{{tool_id}}" id="cleanup" onclick="setTimeout(function() {{{tool_id}}_get_table_info();}, 500);">Clean UP</button>
+    <button onclick="{{tool_id}}_get_table_info();">Refresh</button>
+    <br>
+    <h3>Database Info:</h3>
+    <div id="{{tool_id}}_table_info"></div>
+    <h2>Log Viewer:</h2><br>
+    <div>
+        <strong>Filters:</strong>
+        Log Type: <select id="{{tool_id}}_stream_type">
+        <option selected>All</option>
+        <option>Debug</option>
+        <option>Info</option>
+        <option>Warning</option>
+        <option>Error</option>
+        <option>Exception</option>
+        <option>Usage</option>
+        <option>Display</option>
+    </select>
+        Date Start: <input type="datetime-local" id="{{tool_id}}_start_date">
+        Date End: <input type="datetime-local" id="{{tool_id}}_end_date">
+        Filter Text: <input type="text" id="{{tool_id}}_filter_text">
+        <button onclick="{{tool_id}}_update_log_viewer();">Filter</button>
+    </div>
+    <div id="{{tool_id}}_log_viewer" style="height:440px; overflow: auto;"></div>
+    <button onclick="{{tool_id}}_clear_table('logging');">Clear All Logs</button>
+    <input id="{{tool_id}}_delete_table" type="hidden" name="table" class="delete">
+    <button id="delete" style="visibility: hidden" class="{{tool_id}}"></button>
+</div>
+<script>
+    function get_json_callback(url, callback){
+        fetch(url)
+            .then(response => response.json())
+            .then(json => callback(null, json))
+            .catch(error => callback(error, null))
+    }
+
+    function {{tool_id}}_get_table_info(){
+        get_json_callback("/tool/{{tool_id}}/table_info", {{tool_id}}_update_table_info);
+    }
+
+    function {{tool_id}}_get_table_data(table){
+        get_json_callback("/tool/{{tool_id}}/table_data?table=" + table, {{tool_id}}_update_table_data);
+    }
+
+    function {{tool_id}}_update_log_viewer(){
+        var sel = document.getElementById("{{tool_id}}_stream_type");
+        var sd = document.getElementById("{{tool_id}}_start_date");
+        var ed = document.getElementById("{{tool_id}}_end_date");
+        var txt = document.getElementById("{{tool_id}}_filter_text");
+        var start_date;
+        var end_date;
+
+        if(sd.value != "") {
+            start_date = Date.parse(sd.value);
+        }
+
+        if(ed.value != "")
+            end_date = Date.parse(ed.value);
+
+
+        data = [];
+
+        for(var i=0; i<log_info.length; i++) {
+            var addrecord = true;
+            if (sel.value != "All")
+                if(log_info[i]["stream"] != sel.value.toLocaleLowerCase())
+                    addrecord = false;
+
+            if(sd.value != ""){
+                var dt = Date.parse(log_info[i]["created"]);
+                if(dt < start_date)
+                    addrecord = false;
+            }
+
+            if(ed.value != ""){
+                var dt = Date.parse(log_info[i]["created"]);
+                if(dt > end_date)
+                    addrecord = false;
+            }
+
+            if(txt.value != "")
+                if(!log_info[i]["message"].includes(txt.value))
+                    addrecord = false;
+
+            if(addrecord)
+                data.push(log_info[i]);
+        }
+
+        {{tool_id}}_update_log(data);
+    }
+
+    function {{tool_id}}_update_log(data){
+        var tbl = document.createElement("table");
+        tbl.setAttribute("style", "border-collapse: collapse");
+        var hasHeader = false;
+        for(var i=0; i<data.length; i++){
+            var tr, td;
+            if(!hasHeader){
+                tr = document.createElement("tr");
+                for(key in data[i]){
+                    td = document.createElement("th");
+                    td.setAttribute("style", "border: solid 1px black;");
+                    td.appendChild(document.createTextNode(key));
+                    tr.appendChild(td);
+                }
+                tbl.appendChild(tr);
+                hasHeader = true;
+            }
+            tr = document.createElement("tr");
+            for(key in data[i]){
+                td = document.createElement("td");
+                td.setAttribute("style", "border: solid 1px black;");
+                td.appendChild(document.createTextNode(data[i][key]));
+                tr.appendChild(td);
+            }
+            tbl.appendChild(tr);
+        }
+
+        var div = document.getElementById("{{tool_id}}_log_viewer");
+        div.innerHTML = "";
+        div.appendChild(tbl);
+
+    }
+
+
+    function {{tool_id}}_update_table_data(error, data){
+        if(error != null){
+            alert(error);
+            return 0;
+        }
+
+        log_info = data;
+        {{tool_id}}_update_log(data);
+    }
+
+    function {{tool_id}}_update_table_info(error, data){
+        if(error != null){
+            alert(error);
+            return 0;
+        }
+
+        var tbl = document.createElement("table");
+        tbl.setAttribute("style", "border-collapse: collapse");
+        var tr = document.createElement("tr");
+        var th = document.createElement("th");
+        th.setAttribute("style", "border: solid 1px black");
+        th.appendChild(document.createTextNode("Table Name"));
+        tr.appendChild(th);
+        th = document.createElement("th");
+        th.setAttribute("style", "border: solid 1px black");
+        th.appendChild(document.createTextNode("Number of Rows"));
+        tr.appendChild(th);
+        /*th = document.createElement("th");
+        th.setAttribute("style", "border: solid 1px black");
+        th.appendChild(document.createTextNode("Action"));
+        tr.appendChild(th);//*/
+        tbl.appendChild(tr);
+
+        for(key in data["tables"]){
+            var tr = document.createElement("tr");
+            var td = document.createElement("td");
+            td.setAttribute("style", "border: solid 1px black");
+            td.appendChild(document.createTextNode(key));
+            tr.appendChild(td);
+            td = document.createElement("td");
+            td.setAttribute("style", "border: solid 1px black");
+            td.appendChild(document.createTextNode(data["tables"][key]));
+            tr.appendChild(td);
+            /*td = document.createElement("td");
+            td.setAttribute("style", "border: solid 1px black");
+            var btn = document.createElement("button");
+            btn.appendChild(document.createTextNode("View Table"));
+            btn.setAttribute("onclick", "get_table_data('" + key + "');");
+            td.appendChild(btn);
+            if(key == "logging") {
+                btn = document.createElement("button");
+                btn.setAttribute("onclick", "clear_table('" + key + "');");
+                btn.appendChild(document.createTextNode("Clear Table"));
+                td.appendChild(btn);
+            }
+            tr.appendChild(td);//*/
+            tbl.appendChild(tr);
+            {{tool_id}}_get_table_data("logging");
+        }
+
+        var div = document.getElementById("{{tool_id}}_table_info");
+        div.innerHTML = "";
+        div.appendChild(tbl);
+
+        var p = document.createElement("p");
+        var st = document.createElement("strong");
+        st.appendChild(document.createTextNode("File Location: "));
+        p.appendChild(st);
+        p.appendChild(document.createTextNode(data["file_info"]["file_location"]));
+        p.appendChild(document.createElement("br"));
+        st = document.createElement("strong");
+        st.appendChild(document.createTextNode("File Size: "));
+        p.appendChild(st);
+        p.appendChild(document.createTextNode(data["file_info"]["file_size"]));
+        div.appendChild(p);
+
+        //setTimeout(function(){get_table_info();}, 10000);
+    }
+
+    function {{tool_id}}_clear_table(tbl){
+        if(confirm("Remove all records from table: " + tbl + "?")){
+            var inp = document.getElementById("{{tool_id}}_delete_table");
+            inp.value = tbl;
+            var btn = document.getElementById("delete");
+            btn.click();
+            setTimeout(function () {{{tool_id}}_get_table_info();}, 1000);
+        }
+    }
+
+    var log_info;
+    {{tool_id}}_get_table_info();
+</script>

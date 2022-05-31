@@ -1,0 +1,10 @@
+What's new in Station Exec 0.1.1
+================================
+
+April 26, 2018
+--------------
+
+::
+
+    Fixing bugs associated with print function in python 2 vs 3 and a misnamed sequence step status.
+

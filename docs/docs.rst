@@ -1,0 +1,4 @@
+Documentation
+=============
+
+.. include:: README.md

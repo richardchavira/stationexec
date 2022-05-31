@@ -1,0 +1,13 @@
+What's new in Station Exec 0.4.0
+================================
+
+June 19, 2018
+-------------
+
+::
+
+    New features:
+    * Improvements to hello-world run
+    * Sequence DAG implementation
+    * Sequence DAG visualization
+    * Main UI updated

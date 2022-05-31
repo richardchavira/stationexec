@@ -1,0 +1,21 @@
+What's new in Station Exec 0.6.1
+================================
+
+February 15, 2019
+-----------------
+
+::
+
+    * Minor tune-ups for internal demo
+    * Added optional case in async tool for parsing data without a delimiter
+
+What's new in Station Exec 0.6.0
+================================
+
+January 30, 2019
+----------------
+
+::
+
+    * Minor tune-ups for internal demo
+    * Added path reference to stations

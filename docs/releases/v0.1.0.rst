@@ -1,0 +1,15 @@
+What's new in Station Exec 0.1.0
+================================
+
+April 20, 2018
+--------------
+
+::
+
+    New features:
+    * Generated documentation
+    * Initial database connectivity
+    * User login capability
+    * Initial examples
+    * Sequence status display on UI
+

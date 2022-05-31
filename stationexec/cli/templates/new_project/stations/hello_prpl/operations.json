@@ -1,0 +1,122 @@
+[
+    {
+        "operation": "One"
+    },
+    {
+        "operation": "Two",
+        "results": [
+            {
+                "id": "important_value",
+                "type": "json"
+            },
+            {
+                "id": "important_value2"
+            }
+        ],
+        "follows": ["One"]
+    },
+    {
+        "operation": "Three",
+        "results": [
+            {
+                "id": "upper_bound"
+            }],
+        "follows": ["One"]
+    },
+    {
+        "operation": "Four",
+        "follows": ["Two", "Three"]
+    },
+    {
+        "operation": "Five",
+        "description": "The fifth operation; the one that finds the center",
+        "condition": "8 < Two::important_value2",
+        "parameters": {
+            "rvalue": 22,
+            "svalue": 9.98,
+            "tvalue": "ISO14971",
+            "uvalue": "_config::serial",
+            "vvalue": "Two::important_value"
+        },
+        "results": [
+            {
+                "id": "center_value",
+                "type": "numeric",
+                "description": "The center of everything",
+                "condition": "inrange _config::lower_bound, Three::upper_bound"
+            },
+            {
+                "id": "choice",
+                "type": "boolean",
+                "description": "The result of a choice",
+                "condition": "== True"
+            },
+            {
+                "id": "image_storage",
+                "type": "image/png",
+                "description": "An image we need for later viewing"
+            },
+            {
+                "id": "text_data",
+                "type": "text/plain",
+                "description": "A string that is only useful in context of the sequence",
+                "store": false
+            }
+        ],
+        "follows": ["Two", "Three"]
+    },
+    {
+        "operation": "Six",
+        "parameters": {
+            "bound": "Three::upper_bound"
+        },
+        "follows": ["Five"]
+    },
+    {
+        "loop": "repeat _config::loop_repeats",
+        "operations": [
+            {
+                "operation": "Eight",
+                "parameters": {
+                    "n_up_data": "42"
+                },
+                "results": [
+                    {
+                        "id": "result_value",
+                        "condition": "inrange 10, 20"
+                    },
+                    {
+                        "id": "data_value",
+                        "type": "text/plain"
+                    }
+                ]
+            }
+        ]
+    },
+    {
+        "loop": "dowhile Nine::index >= 10",
+        "operations": [
+            {
+                "operation": "Seven",
+                "follows": ["One"]
+            },
+            {
+                "operation": "Nine",
+                "parameters": {
+                    "value": "Three::upper_bound"
+                },
+                "results": [
+                    {
+                        "id": "index",
+                        "store": false
+                    }
+                ],
+                "follows": ["Seven"]
+            },
+            {
+                "operation": "Ten",
+                "follows": ["Nine"]
+            }
+        ]
+    }
+]

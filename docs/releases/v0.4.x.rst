@@ -1,0 +1,114 @@
+What's new in Station Exec 0.4.4
+================================
+
+August 14, 2018
+---------------
+
+::
+
+    * Bug fix - two required packages missing from requirements.txt in 0.4.3
+    * Magnemotion tool in an early, usable state
+    * Usability and stability fixes - here are a few:
+        * Tool UI improvements
+            * Consistency improvements in naming of tool UI files
+            * Hiding unsupported tabs
+            * Faster and more consistent tool status updates
+    * Style improvements
+
+What's new in Station Exec 0.4.3
+================================
+
+August 1, 2018
+--------------
+
+::
+
+    * New database capabilities
+        * Tool and table to log exceptions during execution - helpful for tracking software issues over time
+        * Tool and table to log tool usage - can be used to track maintenance on tools
+    * Improved DAG visualization
+        * New drawing package used that is more flexible
+        * More predictable and controllable layout
+    * Ease of use changes for Developers:
+        * Ability to display a nicely formatted table showing individual or group tool status
+            * Added to all tool UIs
+            * Makes adding a table showing the status of a subset of tools to a station page easy
+        * localonly mode enforced for 'hello_prpl' example project
+        * Check for installed packages - a quick check to ensure all required python packages are present to aid
+            the developer in getting started quickly.
+        * Added extra checks in operations for when system is shutting down
+        * Added experimental force shutdown mode that terminates operations when stopping sequences
+    * Copious usability and stability fixes - here are a few:
+        * More fixes related to the process -> thread change
+        * Improvements to database syncing for performance and stability
+        * Gave GetTool a non-blocking mode in case we don't want to halt execution on an unavailable tool
+        * Prevent cameras from launching multiple acquisition loops
+        * Allow asynctool to directly set tool status to aid responsiveness in status changes
+        * Fix sqlite transaction issues plaguing Python 3 runs
+        * Only running database sync method when the external database is available
+        * Updating built-in jquery to most recent stable version
+        * Changing how UUIDs are stored to fix incompatibility between Python 2 and 3 representation of bytes and strings
+    * Widespread documentation and style improvements
+
+What's new in Station Exec 0.4.2
+================================
+
+July 12, 2018
+-------------
+
+::
+
+    * Changing architecture of stationexec from multi-process to multi-thread
+        * BIG change with primarily beneficial results
+        * Support for stationexec on Windows is MUCH more stable
+            * Multi-processing is poorly supported on Windows - threading works great
+            * Many items like threads and sockets would not work (which makes tool connections hard) - now they do
+            * Python 3 on Windows is back on the table! It behaved differently than 2 in multiprocessing - no longer.
+        * More complex tools can be supported
+            * Tools like cameras that interact with an installed driver on the PC did not appreciate access from
+                multiple memory spaces caused huge issues
+            * Now we are no longer limited as all threads share the same space
+        * Communication between the sequencer and operations is much more stable and less limiting
+        * stationexec no longer runs on multiple processors, but is a fairly low-overhead application anyway
+    * localonly mode
+        * Allows running stations in mode that never connects to external database
+        * Stores results locally for ease of initial setup
+        * No MySQL database required to develop, test, and run!
+    * Lots of work to get cameras working
+        * Basler and IDS camera drivers included
+        * Support for still photos and streaming MJPEG video
+        * Easy support for adding video stream from camera to web UI
+    * Copious usability and stability fixes - here are a few:
+        * Lots of cleanup related to tool checking/checkout due to process -> thread change (hooray for thread locks!)
+        * Fixes to improve multiplatform support for Python 2 and 3 (developing on Windows 10, Centos 7, and Ubuntu)
+        * Changing tool status checks from threads to coroutines to gain better control over the status check execution
+            and ward off thread safety issues
+        * Disallow operations checking out results and authorization databases so users cannot tamper with results
+    * Widespread documentation and style improvements
+
+What's new in Station Exec 0.4.1
+================================
+
+June 27, 2018
+-------------
+
+::
+
+    * Local/Remote database sync
+        * Store results, users, and stations in a local file database
+        * If connectivity is available for remote MySQL database, sync local results
+        * Prevents loss of data due to loss of connectivity
+        * Handles collisions and duplicate data
+        * Runs periodically to allow for protection even with an intermittent connection
+    * New Developer Tools
+        * tool_util class that eases testing of tools
+        * Allows developer to launch tools in a context similar to stationexec without the extra bulk
+        * Makes debugging and testing tools much easier
+    * Copious usability and stability fixes - here are a few:
+        * Made tool online/offline status easier to manipulate and all related systems more robust
+        * Using new sphinx module to make HTTP API docs look much better and make them easier to read
+        * Exception logging made more verbose to give better insight
+        * Context manager to make tool checkout/return more intuitive
+        * Making sure missing SSL certificates doesn't break software (in case they aren't wanted)
+    * Widespread documentation and style improvements
+

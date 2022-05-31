@@ -1,0 +1,80 @@
+<div>
+    <h1>Config Tool</h1>
+    <label>Config Location: <input style="width:100%" type="text" readonly id="{{tool_id}}_config_file"></label>
+    <h2>Current Config:</h2><button type="button" onclick="{{tool_id}}_start_update()">Refresh</button>
+    <div id="config"></div>
+    <button type="button" class="{{tool_id}}" id="save" onclick="{{tool_id}}_delayed_update()">Save All</button>
+    <hr>
+    <label for="new_name">Name:</label>
+    <input type="text" name="name" id="new_name" class="new">
+    <label for="new_value">Value:</label>
+    <input type="text" name="value" id="new_value" class="new">
+    <button type="button" class="{{tool_id}}" id="new" onclick="{{tool_id}}_delayed_update()">Save New Setting</button>
+</div>
+
+<script>
+    function {{tool_id}}_changed_value(id){
+        var inp = document.getElementById(id);
+        inp.style.backgroundColor = '#FCF46C';
+    }
+
+    function {{tool_id}}_start_update(){
+        {{tool_id}}_get_json_callback("/tool/{{tool_id}}/data", {{tool_id}}_process_data);
+    }
+
+    function {{tool_id}}_delayed_update(){
+        setTimeout(function() {
+            {{tool_id}}_start_update();
+            }, 1000);
+    }
+
+    {{tool_id}}_start_update();
+
+    function {{tool_id}}_process_data(error, data){
+        var c_div = document.getElementById("config");
+        if(data != null){
+            c_div.innerHTML = "Loading...";
+            {{tool_id}}_build_table(c_div, data);
+        }
+    }
+
+    function {{tool_id}}_get_json_callback(url, callback){
+        fetch(url)
+            .then(response => response.json())
+            .then(json => callback(null, json))
+            .catch(error => callback(error, null))
+    }
+
+    function {{tool_id}}_build_table(div, data){
+        var tbl = document.createElement("table");
+        tbl.setAttribute("class", "station_history_table");
+        var tr = document.createElement("TR");
+        var th = document.createElement("TH");
+        th.appendChild(document.createTextNode("Setting Name"));
+        tr.appendChild(th);
+        th = document.createElement("TH");
+        th.appendChild(document.createTextNode("Value"));
+        tr.appendChild(th);
+        tbl.appendChild(tr);
+
+        for(var key in data){
+            //create row
+            tr = document.createElement("TR");
+            var td = document.createElement("TD");
+            td.appendChild(document.createTextNode(key));
+            tr.appendChild(td);
+            td = document.createElement("TD");
+            var inp = document.createElement("INPUT");
+            inp.name = key;
+            inp.id = key;
+            inp.setAttribute("class", "save");
+            inp.value = data[key];
+            inp.setAttribute("onchange", '{{tool_id}}_changed_value("' + key + '")');
+            td.appendChild(inp);
+            tr.appendChild(td); //*/
+            tbl.appendChild(tr);
+        }
+        div.innerHTML = "";
+        div.appendChild(tbl);
+    }
+</script>

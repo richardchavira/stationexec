@@ -1,0 +1,16 @@
+[
+    {
+        "tool_type": "exampletool",
+        "name": "Example",
+        "tool_id": "example_tool",
+        "configurations": {
+            "arg1": 10
+        }
+    },
+    {
+        "tool_type": "exampletool2",
+        "name": "Example 2",
+        "tool_id": "example_tool_2",
+        "configurations": {}
+    }
+]

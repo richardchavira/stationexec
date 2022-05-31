@@ -1,0 +1,5 @@
+{
+  "serial": "COM1",
+  "lower_bound": 3,
+  "loop_repeats": 2
+}
