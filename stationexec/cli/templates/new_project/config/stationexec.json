@@ -1,5 +1,10 @@
 {
   "serial": "COM1",
   "lower_bound": 3,
-  "loop_repeats": 2
+  "loop_repeats": 2,
+  "ssl_certificate_path": "/etc/pki/ca-trust/source/anchors/SigmaDesignCABundle.cer",
+  "db_endpoints": {
+      "Staging": "https://stationexec_staging.mfg.apc2-sigma.com/",
+      "Local": null
+  }
 }

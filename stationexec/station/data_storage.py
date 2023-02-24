@@ -162,11 +162,20 @@ from functools import partial
 
 import simplejson
 from stationexec.logger import log
-from stationexec.station.events import _set_storage_callbacks, emit_event_non_blocking, \
-    ActionEvents, RetrievalEvents, StorageEvents, InfoEvents
+from stationexec.station.events import (
+    _set_storage_callbacks,
+    emit_event_non_blocking,
+    ActionEvents,
+    RetrievalEvents,
+    StorageEvents,
+    InfoEvents,
+)
 from stationexec.utilities.config import get_all_paths
-from stationexec.utilities.exceptions import ToolInUseException, ToolNotExistsException, \
-    ToolUnavailableException
+from stationexec.utilities.exceptions import (
+    ToolInUseException,
+    ToolNotExistsException,
+    ToolUnavailableException,
+)
 from stationexec.utilities.time import to_timestamp, to_datetime, get_utc_now
 
 _STORAGE_FILE = "queue.json"
@@ -203,7 +212,9 @@ class DataStorage(object):
         for event in list(RetrievalEvents):
             self._retrieval_events[event] = None
 
-        _set_storage_callbacks(self.register_event, self.unregister_event, self.trigger_event)
+        _set_storage_callbacks(
+            self.register_event, self.unregister_event, self.trigger_event
+        )
 
     def initialize(self):
         """ Make sure required events are covered, load old data, and start worker thread """
@@ -218,7 +229,9 @@ class DataStorage(object):
 
         # Must wait to run this until the end of initializations, after all handlers
         # have been registered
-        self._worker = threading.Thread(name="storage_worker", target=self._storage_worker)
+        self._worker = threading.Thread(
+            name="storage_worker", target=self._storage_worker
+        )
         self._worker.start()
 
         self._is_initialized = True
@@ -227,7 +240,9 @@ class DataStorage(object):
         """ Set callbacks for managing tools - called after toolbox is enabled """
         if self._checkout_tool_storage is None:
             self._checkout_tool_storage = partial(checkout_tool, "datastorage:storage")
-            self._checkout_tool_retrieval = partial(checkout_tool, "datastorage:retrieval")
+            self._checkout_tool_retrieval = partial(
+                checkout_tool, "datastorage:retrieval"
+            )
         if self._return_tool_storage is None:
             self._return_tool_storage = partial(return_tool, "datastorage:storage")
             self._return_tool_retrieval = partial(return_tool, "datastorage:retrieval")
@@ -246,8 +261,7 @@ class DataStorage(object):
         def check_requirement(retrieve):
             """ Check that required retrieve event has a defined handler """
             if self._retrieval_events[retrieve] is None:
-                missing_required_handlers.append("- '{0}'".format(
-                    retrieve))
+                missing_required_handlers.append("- '{0}'".format(retrieve))
 
         def check_required_pair(retrieve, store):
             """
@@ -266,30 +280,47 @@ class DataStorage(object):
                 if found_retrieve_tool is False:
                     missing_required_handlers.append(
                         "- '{0}' (Required by '{2}' from source '{1}')".format(
-                            store, src, retrieve))
+                            store, src, retrieve
+                        )
+                    )
 
         # Retrieve functionality that is required for operation
-        check_requirement(RetrievalEvents.GET_STATION_DATA)
-
+        check_requirement(RetrievalEvents.GET_STATION_DATA_LOCAL)
+        
         # If a retrieve function is specified, the corresponding storage function
         # must be also (with the same source)
         # Station
-        check_required_pair(RetrievalEvents.GET_STATION_DATA, StorageEvents.ON_REGISTER_STATION)
-        check_required_pair(RetrievalEvents.GET_STATION_DATA, StorageEvents.ON_UPDATE_STATION)
+        check_required_pair(
+            RetrievalEvents.GET_STATION_DATA, StorageEvents.ON_REGISTER_STATION
+        )
+        check_required_pair(
+            RetrievalEvents.GET_STATION_DATA, StorageEvents.ON_UPDATE_STATION
+        )
+        check_required_pair(
+            RetrievalEvents.GET_STATION_DATA_LOCAL, StorageEvents.ON_REGISTER_STATION_LOCAL
+        )
         # Sequence
-        check_required_pair(RetrievalEvents.GET_OPERATION_AVERAGE_DURATION,
-                            StorageEvents.ON_OPERATION_START)
-        check_required_pair(RetrievalEvents.GET_OPERATION_AVERAGE_DURATION,
-                            StorageEvents.ON_OPERATION_END)
+        check_required_pair(
+            RetrievalEvents.GET_OPERATION_AVERAGE_DURATION,
+            StorageEvents.ON_OPERATION_START,
+        )
+        check_required_pair(
+            RetrievalEvents.GET_OPERATION_AVERAGE_DURATION,
+            StorageEvents.ON_OPERATION_END,
+        )
         # Log
         check_required_pair(RetrievalEvents.GET_LOG_DATA, StorageEvents.ON_LOG_DATA)
         # Maintenance
-        check_required_pair(RetrievalEvents.GET_MAINTENANCE_DATA,
-                            StorageEvents.ON_MAINTENANCE_EVENT)
+        check_required_pair(
+            RetrievalEvents.GET_MAINTENANCE_DATA, StorageEvents.ON_MAINTENANCE_EVENT
+        )
 
         if len(missing_required_handlers) != 0:
-            raise Exception("Missing required data handlers:\n{0}".format("\n".join(
-                missing_required_handlers)))
+            raise Exception(
+                "Missing required data handlers:\n{0}".format(
+                    "\n".join(missing_required_handlers)
+                )
+            )
 
     def register_event(self, source, event, method):
         if isinstance(event, StorageEvents):
@@ -321,7 +352,10 @@ class DataStorage(object):
         :return:
         """
         assert isinstance(event, StorageEvents)
-        log.debug(3, "Registering data storage handler {0}.{1}".format(source, method.__name__))
+        log.debug(
+            3,
+            "Registering data storage handler {0}.{1}".format(source, method.__name__),
+        )
         self._storage_events[event].append((source, event, method))
 
     def _register_for_retrieval_event(self, source, event, method):
@@ -338,11 +372,17 @@ class DataStorage(object):
         """
         assert isinstance(event, RetrievalEvents)
         if self._retrieval_events[event] is not None:
-            log.debug(1, "Overwriting existing data retrieval handler for {0}. Changing from "
-                         "{1}.{2} to {3}.{4}".format(event.name,
-                                                     self._retrieval_events[event][0],
-                                                     self._retrieval_events[event][2].__name__,
-                                                     source, method.__name__))
+            log.debug(
+                1,
+                "Overwriting existing data retrieval handler for {0}. Changing from "
+                "{1}.{2} to {3}.{4}".format(
+                    event.name,
+                    self._retrieval_events[event][0],
+                    self._retrieval_events[event][2].__name__,
+                    source,
+                    method.__name__,
+                ),
+            )
         self._retrieval_events[event] = source, event, method
 
     def _trigger_storage_event(self, event, data):
@@ -366,9 +406,9 @@ class DataStorage(object):
                 self._storage_queue[source][method] = []
 
             # Place data and timestamp into write queue
-            self._storage_queue[source][method].append((source, evt, method,
-                                                        simplejson.dumps(data),
-                                                        get_utc_now()))
+            self._storage_queue[source][method].append(
+                (source, evt, method, simplejson.dumps(data), get_utc_now())
+            )
 
     def _trigger_retrieval_event(self, event, data):
         """
@@ -411,8 +451,11 @@ class DataStorage(object):
             try:
                 ret = method(**data)
             except Exception as e:
-                log.exception("Exception while processing retrieval method '{0}' for "
-                              "event '{1}".format(evt, str(method)), e)
+                log.exception(
+                    "Exception while processing retrieval method '{0}' for "
+                    "event '{1}".format(evt, str(method)),
+                    e,
+                )
 
             # If a tool was checked out earlier, return it now
             if tool_ref is not None:
@@ -424,7 +467,7 @@ class DataStorage(object):
             return ret
 
     def _checkout_tool_retry_exp(self, tool_id, num_retries):
-        assert (num_retries >= 0)
+        assert num_retries >= 0
 
         delays = [0.25 * (2 ** x) for x in range(num_retries)]
 
@@ -448,8 +491,12 @@ class DataStorage(object):
         if os.path.exists(self._cache_path):
             # Print the size of the file loaded to the log to track in case it grows
             # rather than shrinks
-            log.debug(3, "Loading previous data queue file - size: {0} bytes".format(
-                os.path.getsize(self._cache_path)))
+            log.debug(
+                3,
+                "Loading previous data queue file - size: {0} bytes".format(
+                    os.path.getsize(self._cache_path)
+                ),
+            )
             with open(self._cache_path, "r") as f:
                 queue_data = f.readlines()
             # Read was successful - delete file
@@ -461,7 +508,11 @@ class DataStorage(object):
         def rehydrate(chunk):
             """ Turn JSON string into valid queue data """
             obj = simplejson.loads(chunk)
-            source = None if (obj["source"] == 'null' or obj["source"] == 'None') else obj["source"]
+            source = (
+                None
+                if (obj["source"] == 'null' or obj["source"] == 'None')
+                else obj["source"]
+            )
             event = StorageEvents[obj["event"]]
 
             method = None
@@ -473,8 +524,10 @@ class DataStorage(object):
                 if evt[0] == source and evt[2].__name__ == method_name:
                     method = evt[2]
             if method is None:
-                raise Exception("Unable to find active method to assign to previous data queue "
-                                "item. Cannot locate {0}.{1}".format(source, method_name))
+                raise Exception(
+                    "Unable to find active method to assign to previous data queue "
+                    "item. Cannot locate {0}.{1}".format(source, method_name)
+                )
 
             data_blob = obj["data"]
             storage_time = to_datetime(obj["created"])
@@ -484,7 +537,9 @@ class DataStorage(object):
             try:
                 queue_entry = rehydrate(data)
             except Exception as e:
-                log.exception("Failed to load object from previous run storage queue", e)
+                log.exception(
+                    "Failed to load object from previous run storage queue", e
+                )
                 continue
             else:
                 data_source = queue_entry[0]
@@ -510,7 +565,7 @@ class DataStorage(object):
                 "event": event.name,
                 "method": mthd.__name__,
                 "data": data,
-                "created": to_timestamp(storage_time)
+                "created": to_timestamp(storage_time),
             }
             return simplejson.dumps(obj)
 
@@ -553,41 +608,38 @@ class DataStorage(object):
                         tool_ref = self._get_tool(source)
                     except (ToolInUseException, ToolUnavailableException):
                         # Tool cannot be reserved now - try again on the next loop iteration
-                        log.debug(4, "Data storage source '{0}' is unavailable; will try "
-                                     "again later".format(source))
+                        log.debug(
+                            4,
+                            "Data storage source '{0}' is unavailable; will try "
+                            "again later".format(source),
+                        )
                         continue
 
                     # Source is now reserved (if applicable)
                     # Attempt to process all items in the queue for this source
-                    # start = default_timer()
-                    # num_records = 0
-
-                    to_delete = []
-                    queue_source_keys = list(self._storage_queue[source].keys())
-                    for method in queue_source_keys:
+                    methods = list(self._storage_queue[source].keys())
+                    for method in methods:
                         if self._is_shutdown:
                             break
 
-                        # num_records += len(records)
-
                         try:
-                            self._store_records(source, method)
+                            stored_records = self._store_records(source, method)
                             did_write_data = True
                         except Exception as e:
                             # Something didn't work - exit and try again later
-                            log.exception("Exception while processing data in storage worker", e)
+                            log.exception(
+                                "Exception while processing data in storage worker", e
+                            )
                             continue
-                        else:
-                            to_delete.append((source, method))
 
-                    for del_source, del_method in to_delete:
-                        # Remove processed data from the queue
-                        del self._storage_queue[del_source][del_method]
+                        records = self._storage_queue[source][method]
 
-                    # end = default_timer()
-                    # duration = end - start
-                    # print("-----   {0} records".format(num_records))
-                    # print("------- {0}s".format(duration))
+                        for record in stored_records:
+                            records.remove(record)
+
+                        if len(records) == 0:
+                            del self._storage_queue[source][method]
+                            continue
 
                     # If a tool was checked out earlier, return it now
                     self._ret_tool(tool_ref)
@@ -596,6 +648,7 @@ class DataStorage(object):
                 if did_write_data:
                     emit_event_non_blocking(InfoEvents.STORAGE_COMPLETE, {})
                 self._sleep()
+
         except StorageShutdown:
             # Shutdown received while sleeping - part of a clean shutdown
             pass
@@ -639,41 +692,40 @@ class DataStorage(object):
     def _store_records(self, source, method):
         """ Store all records that share the same source and call-back method (but perhaps different events) """
         formatted_records = {}
+        stored_records = []
 
-        for dp in self._storage_queue[source][method]:
-            _src, event, _method, json_data, storage_time = dp
+        for record in self._storage_queue[source][method]:
+            _src, event, _method, json_data, storage_time = record
             if event not in formatted_records:
                 formatted_records[event] = []
 
-            p = simplejson.loads(json_data)
-            p["created"] = storage_time
-            p["_event"] = event
-            p["_source"] = source
+            data = simplejson.loads(json_data)
+            data["created"] = storage_time
+            data["_event"] = event
+            data["_source"] = source
 
-            formatted_records[event].append(p)
-
+            formatted_records[event].append(data)
+            stored_records.append(record)
         for evt in formatted_records.keys():
             method(data=formatted_records[evt], evt=evt)
 
+        return stored_records
 
 if __name__ == "__main__":
-    def chkout_tool(source):
+
+    def checkout_tool(source):
         print("Checking out tool '{0}'".format(source))
         return 'tool'
 
-
     def ret_tool(tool_obj):
         print("Returning tool '{0}'".format(tool_obj))
-
 
     def valid_worker(data):
         print("Working on {0}".format(data))
         return 1
 
-
     def invalid_worker(data):
         raise Exception("Sorry this doesn't work: {0}".format(data))
-
 
     db = DataStorage(3)
 
@@ -684,11 +736,16 @@ if __name__ == "__main__":
     db.register_event('tool_2', RetrievalEvents.GET_STATION_DATA, valid_worker)
     db.register_event(None, RetrievalEvents.GET_STATION_DATA, valid_worker)
 
-    db.initialize(chkout_tool, ret_tool)
-    return_value = db.trigger_event(RetrievalEvents.GET_STATION_DATA,
-                                    {"data": "Please get station data"})
-    db.trigger_event(StorageEvents.ON_CHANGE_STATION_DATA, {"data": "Please get station data"})
-    db.trigger_event(StorageEvents.ON_SEQUENCE_START, {"data": "Please get station data"})
+    db.initialize(checkout_tool, ret_tool)
+    return_value = db.trigger_event(
+        RetrievalEvents.GET_STATION_DATA, {"data": "Please get station data"}
+    )
+    db.trigger_event(
+        StorageEvents.ON_UPDATE_STATION, {"data": "Please get station data"}
+    )
+    db.trigger_event(
+        StorageEvents.ON_SEQUENCE_START, {"data": "Please get station data"}
+    )
 
     time.sleep(4)
     db.shutdown()

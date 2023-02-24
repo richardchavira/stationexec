@@ -2,7 +2,14 @@
 
 # @lint-ignore-every PYTHON3COMPATIMPORTS1
 
-from stationexec.station.events import emit_event, emit_event_non_blocking, InfoEvents, ActionEvents
+from stationexec.station.events import (
+    emit_event,
+    emit_event_non_blocking,
+    InfoEvents,
+    ActionEvents,
+    StorageEvents
+)
+from stationexec.utilities import config, pc_info
 
 
 def shutdown():
@@ -50,10 +57,7 @@ def ui_log(message, sender="helper"):
     :param message:
     :param sender:
     """
-    emit_event(InfoEvents.MESSAGE_UPDATE, {
-        "source": sender,
-        "message": message
-    })
+    emit_event(InfoEvents.MESSAGE_UPDATE, {"source": sender, "message": message})
 
 
 def value_to_ui(target, value, sender="helper"):
@@ -63,11 +67,9 @@ def value_to_ui(target, value, sender="helper"):
     :param value:
     :param sender:
     """
-    emit_event(InfoEvents.OBJECT_UPDATE, {
-        "source": sender,
-        "target": target,
-        "value": value
-    })
+    emit_event(
+        InfoEvents.OBJECT_UPDATE, {"source": sender, "target": target, "value": value}
+    )
 
 
 def reload_tool_manifest(new_manifest=None):
@@ -76,3 +78,36 @@ def reload_tool_manifest(new_manifest=None):
     :param new_manifest:
     """
     emit_event(ActionEvents.RELOAD_TOOL_MANIFEST, {"manifest": new_manifest})
+
+
+def update_plotter_data(graphs_data=None):
+    emit_event_non_blocking(
+        InfoEvents.PLOTTER_DATA_UPDATE, {"graphs_data": graphs_data}
+    )
+
+
+def update_station_info(variant, instance):
+
+    update_info = {
+        "variant": variant,
+        "instance": instance
+    }
+
+    # pc info
+    update_info['macaddress'] = pc_info.get_mac_address()
+    update_info['hostname'] = pc_info.get_hostname()
+
+    # attempt to get info from station's config.json
+    paths = config.get_all_paths()
+    station_config_path = paths.get('station_config')
+    if station_config_path:
+        station_config_data = config.load_config(station_config_path)
+        update_info['location'] = station_config_data.get('location', 'UNKNOWN')
+        update_info['lineid'] = station_config_data.get('lineid', 'UNKNOWN')
+        update_info['info'] = station_config_data.get('info')
+        update_info['preferences'] = station_config_data.get('preferences')
+
+    emit_event(
+            StorageEvents.ON_UPDATE_STATION,
+            update_info,
+        )

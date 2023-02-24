@@ -19,6 +19,25 @@ from tornado import gen
 from tornado.routing import Rule, PathMatches
 
 
+REQUIRED_TOOLS = [
+    {
+        'id': 'station_storage',
+        'name': 'Station Storage',
+    },
+    {
+        'id': 'dut',
+        'name': 'DUT',
+        'configurations': {
+            'dev': True,
+            'id_patterns': ''
+        }
+    },
+    {
+        'id': 'user_input',
+        'name': 'User Input'
+    }
+]
+
 def get_tools(*tools):
     """
     Decorator to be used to checkout tools into a function. Intended for use in station.py
@@ -45,26 +64,26 @@ def get_tools(*tools):
                 if get_tools.checkout_tool is None:
                     return
                 try:
-                    tool_objects[tool] = get_tools.checkout_tool("toolbox.get_tools:{0}".format(
-                        func.__name__), tool)
+                    tool_objects[tool] = get_tools.checkout_tool(
+                        f"toolbox.get_tools:{func.__name__}", tool)
                 except (ToolUnavailableException, ToolInUseException):
-                    log.error("Cannot checkout tool '{0}' at this time".format(tool))
+                    log.error(f"Cannot checkout tool '{tool}' at this time")
+                    raise ToolUnavailableException(f"Cannot checkout tool '{tool}' at this time")
             if len(tool_objects) == len(tools):
                 # Only execute if all required tools were checked out
                 try:
                     ret = func(*args, tools=tool_objects, **kwargs)
                 except Exception as e:
                     # Catch the exception, then continue through to return tools
-                    log.exception("Exception thrown by function '{0}' wrapped by 'get_tools'".
-                                  format(func.__name__), e)
+                    log.exception(f"Exception thrown by function '{func.__name__}'\
+                                  wrapped by 'get_tools'", e)
             else:
-                log.warning("Could not check out all tools - '{0}' will not run".format(
-                    func.__name__))
+                log.warning(f"Could not check out all tools - '{func.__name__}' will not run")
             for tool in tools:
                 if get_tools.return_tool is None:
                     return
                 try:
-                    get_tools.return_tool("toolbox.get_tools:{0}".format(func.__name__),
+                    get_tools.return_tool(f"toolbox.get_tools:{func.__name__}",
                                           tool_objects[tool])
                 except Exception:
                     continue
@@ -81,7 +100,6 @@ get_tools.return_tool = None
 
 class ToolBox(object):
     # How often do tool status checks happen, in seconds
-    _status_polling_period = 5.0
 
     def __init__(self, debug, dev, db_data):
         """
@@ -100,19 +118,16 @@ class ToolBox(object):
         self.tool_usage_times = {}
 
         self.system_db_config = Addict(db_data)
-        manifest_data = list(config.load_config(config.get_all_paths()["tool_manifest"]))
-        self._manifest_data = list(manifest_data)
+        system_paths = config.get_all_paths()
+        self._manifest_data = config.load_config(system_paths["tool_manifest"])
         self._tool_events = {}
 
-        if "station_storage" not in [t["tool_type"] for t in manifest_data]:
-            # No configuration provided for the storage tool - add it here
-            manifest_data.insert(0, {
-                "tool_id": "station_storage",
-                "tool_type": "station_storage",
-                "name": "Station Storage",
-                "configurations": {}
-            })
-        self.load_tool_modules(manifest_data)
+        tool_types = [tool["tool_type"] for tool in self._manifest_data]
+        for tool in REQUIRED_TOOLS:
+            if tool['id'] not in tool_types: 
+                self._add_tool(tool)
+
+        self.load_tool_modules(self._manifest_data)
 
         # Set callbacks for tool getting decorator
         get_tools.checkout_tool = self.checkout_tool
@@ -135,11 +150,12 @@ class ToolBox(object):
             tool = Addict(tool)
             try:
                 if "tool_type" not in tool:
-                    raise Exception("No tool type specified for tool definition in manifest: {0}".format(tool))
+                    raise Exception(f"No tool type specified for tool \
+                                    definition in manifest:{tool}")
                 obj = self.create_tool(tool, reload)
                 self.tools[tool.tool_id] = obj
             except Exception as e:
-                log.exception("Failed to initialize tool '{0}'".format(tool.tool_id), e)
+                log.exception(f"Failed to initialize tool '{tool.tool_id}'", e)
                 pass
 
     def initialize(self):
@@ -170,15 +186,14 @@ class ToolBox(object):
                     # User returned something unexpected - set tool offline
                     tool.set_offline(manual=False)
             except Exception as e:
-                log.exception("Exception while initializing tool {0}: {1}".format(tool.tool_id, str(e)), e)
+                log.exception(f"Exception while initializing tool {tool.tool_id}: {str(e)}", e)
                 tool.set_offline()
 
-            poll_period = self._status_polling_period
+            poll_period = tool.status_polling_period
             try:
                 IoLoop().current().spawn_callback(verify_status_loop, tool_id, tool, poll_period)
             except Exception as e:
-                log.exception(
-                    "Unable to start '{0}' status loop: {1}".format(tool_id, str(e)), e)
+                log.exception(f"Unable to start '{tool_id}' status loop: {str(e)}", e)
         self._tools_reloaded = True
 
     def create_tool(self, tool_cfg, reload=False):
@@ -188,21 +203,22 @@ class ToolBox(object):
         The name is displayed to users. The tool_id must be a unique name. Configurations is a dict
         passed to the tool to configure it, and varies by tool.
 
-        :param dict tool_cfg: dictionary containing tool_type, name, tool_id, configurations keys passed to tool driver
+        :param dict tool_cfg: dictionary containing tool_type, name, tool_id,
+        configurations keys passed to tool driver
         :param bool reload: whether to force the tool module to be reloaded
         :raise ToolExistsException: if a tool of the same tool_id already exists
         """
         name, class_name, display_name = config.format_name(tool_cfg.tool_type)
         if "tool_id" not in tool_cfg:
-            log.warning("No tool_id specified for tool '{0}' in manifest - auto assigning id of '{0}_1'".
-                        format(name))
-            tool_cfg.tool_id = "{0}_1".format(name)
+            log.warning(f"No tool_id specified for tool '{name}' in manifest - \
+                        auto assigning id of '{name}_1'")
+            tool_cfg.tool_id = f"{name}_1"
         if "name" not in tool_cfg:
             tool_cfg.name = display_name
 
         if tool_cfg.tool_id in self.tools:
             raise ToolExistsException(
-                "attempt to create tool '{0}' which already exists".format(tool_cfg.tool_id))
+                f"attempt to create tool '{tool_cfg.tool_id}' which already exists")
 
         # Tool 'static' URL to access static folder would conflict with tool called static
         if name == "static":
@@ -222,15 +238,14 @@ class ToolBox(object):
         }
         configs.update(tool_cfg.configurations)
 
-        log.debug(3, "Creating tool {0} - {1} ({2})".format(
-            tool_cfg.name, tool_cfg.tool_id, tool_cfg.tool_type))
+        log.debug(3, f"Creating tool {tool_cfg.name} - {tool_cfg.tool_id} ({tool_cfg.tool_type})")
 
         # Load tool module into memory
-        module = load_tool_object(tool_cfg.tool_type, reload_mod=reload)
+        module = load_tool_object(tool_cfg.tool_type, reload_mod=reload, location=configs.get("location"))
 
         version = "unknown" if not hasattr(module, "version") else module.version
-        log.info("Loaded tool {0} - {1} ({2}) v{3}".format(
-            tool_cfg.name, tool_cfg.tool_id, tool_cfg.tool_type, version))
+        log.info(f"Loaded tool {tool_cfg.name} - {tool_cfg.tool_id} \
+                ({tool_cfg.tool_type}) v{version}")
         configs["version"] = version
 
         # Return instance of tool driver
@@ -243,13 +258,13 @@ class ToolBox(object):
         :return: None
         """
         for tool_id in self.tools.keys():
-            log.debug(4, "shutting down tool object '{0}'".format(tool_id))
+            log.debug(4, f"shutting down tool object '{tool_id}'")
             try:
                 self.tools[tool_id].is_shutting_down = True
                 self.tools[tool_id].shutdown()
                 self.tools[tool_id].set_offline()
             except Exception as e:
-                log.debug(4, "Error while cleaning up '{0}': {1}".format(tool_id, str(e)))
+                log.debug(4, f"Error while cleaning up '{tool_id}': {str(e)}")
 
     def _register_for_event(self, tool_id, source, event_enum, callback):
         if tool_id not in self._tool_events:
@@ -269,7 +284,8 @@ class ToolBox(object):
         if manifest is None or manifest == {}:
             return
 
-        # Convert the manifest lists into dicts with the IDs as keys; assign a default if ID doesn't exist;
+        # Convert the manifest lists into dicts with the IDs as keys; assign a default if
+        # ID doesn't exist;
         #  Ignore station_storage - not allowed to reload that tool
         old_manifest = {self._get_tool_id_from_manifest(t): t for t in self._manifest_data}
         #                if self._get_tool_id_from_manifest(t) != "station_storage"}
@@ -301,7 +317,7 @@ class ToolBox(object):
 
     @staticmethod
     def _get_tool_id_from_manifest(manifest_item):
-        return manifest_item.get("tool_id", "{0}_1".format(manifest_item["tool_type"]))
+        return manifest_item.get("tool_id", f'{manifest_item["tool_type"]}_1')
 
     def _reload_tools(self, manifest):
         # Shutdown the tools to reload and cleanup after them
@@ -375,8 +391,8 @@ class ToolBox(object):
         :return: (bool) online, (bool) in_use
         """
         if tool_id not in self.tools:
-            log.error("got request for status of unknown tool '{0}'".format(tool_id))
-            raise ToolNotExistsException("Unknown tool '{0}'".format(tool_id))
+            log.error(f"got request for status of unknown tool '{tool_id}'")
+            raise ToolNotExistsException(f"Unknown tool '{tool_id}'")
 
         online = self.tools[tool_id].is_online
         in_use = self.tools[tool_id]._locked()
@@ -410,7 +426,8 @@ class ToolBox(object):
         ]
         for tool_id in self.tools:
             for endpoint in self.tools[tool_id].get_endpoints():
-                # TODO verify that endpoint starts with /tool/<tool_id> and that no other rules are broken
+                # TODO verify that endpoint starts with /tool/<tool_id> and that no
+                # other rules are broken
                 endpoints.append(Rule(PathMatches(endpoint[0]), *endpoint[1:]))
         self._endpoints = endpoints
         self._tools_reloaded = False
@@ -433,10 +450,8 @@ class ToolBox(object):
         :raises ToolInUseException: tool in use by another process
         """
         if tool_id not in self.tools:
-            log.error("'{0}' trying to checkout unknown tool '{1}'".format(
-                process, tool_id))
-            raise ToolNotExistsException("'{0}' trying to checkout unknown tool '{1}'".format(
-                process, tool_id))
+            log.error(f"'{process}' trying to checkout unknown tool '{tool_id}'")
+            raise ToolNotExistsException(f"'{process}' trying to checkout unknown tool '{tool_id}'")
 
         tool = self.tools[tool_id]
 
@@ -445,19 +460,18 @@ class ToolBox(object):
 
         if not process.startswith("datastorage"):
             # Log for all processes except database storage process
-            log.debug(7, "'{1}' checking out tool '{0}'".format(tool_id, process))
+            log.debug(7, f"'{process}' checking out tool '{tool_id}'")
 
         try:
             # Attempt to acquire the rights to use the tool
             tool._acquire_tool_lock(process)
         except ToolUnavailableException:
             # Tool is offline
-            log.debug(3, "Checkout Tool: '{0}' offline".format(tool_id))
+            log.debug(3, f"Checkout Tool: '{tool_id}' offline")
             raise
         except ToolInUseException:
             # Tools is in use by another process
-            log.debug(3, "Checkout Tool: '{0}' in use by '{1}'".format(tool_id,
-                                                                       tool.checked_out_by))
+            log.debug(3, f"Checkout Tool: '{tool_id}' in use by '{tool.checked_out_by}'")
             raise
         else:
             self.tool_usage_times[tool_id] = time.time()
@@ -475,13 +489,11 @@ class ToolBox(object):
         try:
             tool_id = tool_obj.tool_id  # type: str
         except Exception as e:
-            log.debug(1, "'{0}' tried to return an invalid tool. Did nothing: {1}".format(
-                process, e))
+            log.debug(1, f"'{process}' tried to return an invalid tool. Did nothing: {e}")
             return
 
         if tool_id not in self.tools:
-            log.debug(1, "'{0}' attempting to return unknown tool '{1}'".format(
-                process, tool_id))
+            log.debug(1, f"'{process}' attempting to return unknown tool '{tool_id}'")
             return
 
         tool_obj._release_tool_lock(process)
@@ -489,8 +501,18 @@ class ToolBox(object):
 
         if not process.startswith("datastorage"):
             # Log for all processes except database storage process
-            log.debug(8, "'{0}' returned tool '{1}'".format(process, tool_id))
+            log.debug(8, f"'{process}' returned tool '{tool_id}'")
 
+
+    def _add_tool(self, tool_data):
+        tool = {
+            "tool_id": tool_data['id'],
+            "tool_type": tool_data['id'],
+            "name": tool_data['name'],
+            "configurations": tool_data.get('configurations', {})
+        }
+        
+        self._manifest_data.append(tool)
 
 @gen.coroutine
 def verify_status_loop(tool_id, _tool, poll_period):
@@ -514,8 +536,7 @@ def verify_status_loop(tool_id, _tool, poll_period):
                     # User returned something unexpected - set tool offline
                     _tool.set_offline(manual=False)
         except Exception as e:
-            log.warning("Exception in status loop for tool '{0}': {1}".format(
-                tool_id, e))
+            log.warning(f"Exception in status loop for tool '{tool_id}': {e}")
             _tool.set_offline()
         finally:
             # Sleep for the poll delay while still monitoring for a quit state
@@ -523,4 +544,4 @@ def verify_status_loop(tool_id, _tool, poll_period):
                 if _tool.is_shutting_down:
                     break
                 yield gen.sleep(0.25)
-    log.debug(2, "Exiting status check loop for '{0}'".format(tool_id))
+    log.debug(2, f"Exiting status check loop for '{tool_id}'")

@@ -13,6 +13,7 @@ class IoLoop(Singleton):
 
     http://www.tornadoweb.org/en/stable/ioloop.html#tornado.ioloop.IOLoop.instance
     """
+
     ioloop_instance = None
 
     def init(self):

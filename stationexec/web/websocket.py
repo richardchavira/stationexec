@@ -2,8 +2,14 @@
 
 import simplejson
 from stationexec.logger import log
-from stationexec.station.events import emit_event, register_for_event_group, InfoEvents, \
-    ActionEvents, RetrievalEvents, emit_event_non_blocking
+from stationexec.station.events import (
+    emit_event,
+    register_for_event_group,
+    InfoEvents,
+    ActionEvents,
+    RetrievalEvents,
+    emit_event_non_blocking,
+)
 from stationexec.utilities.ioloop_ref import IoLoop
 from stationexec.utilities.uuidstr import get_uuid
 from tornado import gen
@@ -16,6 +22,7 @@ is_shutting_down = False
 
 class StationSocket(WebSocketHandler):
     """Tornado endpoint handler for requesting a new web socket"""
+
     manager = None
     uuid = None
     stationuuid = None
@@ -42,10 +49,7 @@ class StationSocket(WebSocketHandler):
             if not isinstance(data, dict):
                 raise Exception()
         except Exception:
-            data = {
-                "type": "unknown",
-                "message": "message"
-            }
+            data = {"type": "unknown", "message": "message"}
 
         if "_webevent" in data:
             event_type, event = data["_webevent"].split(".", 1)
@@ -71,7 +75,7 @@ class StationSocket(WebSocketHandler):
         out_data = {
             "target": data["_websource"],
             "result": result,
-            "request_event": str(event)
+            "request_event": str(event),
         }
         emit_event_non_blocking(InfoEvents.UI_DATA_DELIVERY, out_data)
 
@@ -129,7 +133,9 @@ class SocketManager(object):
                 log.debug(4, "tried to write to closed socket: {0}".format(e))
                 closed_sockets.append(socket_id)
             except BufferError as e:
-                log.exception("socket buffer error with message '{0}'".format(message), e)
+                log.exception(
+                    "socket buffer error with message '{0}'".format(message), e
+                )
         for socket_id in closed_sockets:
             self._socket_sessions.pop(socket_id, None)
 

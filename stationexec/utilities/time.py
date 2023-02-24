@@ -3,7 +3,9 @@
 # @lint-ignore-every PYTHON3COMPATIMPORTS1
 
 import arrow
-from arrow.arrow import datetime
+# from arrow.arrow import datetime
+
+TIMESTAMP_FORMAT="%Y-%m-%d %H:%M:%S.%f"
 
 
 def utc_to_local(dt):
@@ -25,15 +27,27 @@ def get_utc_now():
     return arrow.utcnow().datetime
 
 
-def to_timestamp(dt, is_local_time=False):
-    if isinstance(dt, datetime):
-        return dt.timestamp()
+def format_datetime(dt) -> str:
+    return dt.strftime(TIMESTAMP_FORMAT)[:-3]
+
+
+def get_utc_formated(local_time=False) -> str:
+    if local_time:
+        dt=get_local_time()
     else:
-        dt = arrow.get(dt)
-        if is_local_time:
-            # Assume time given in local time - assign local timezone info
-            dt = local_to_utc(dt)
-        return dt.timestamp()
+        dt=get_utc_now()
+    return format_datetime(dt)
+
+
+def to_timestamp(dt, is_local_time=False):
+    # if isinstance(dt, datetime):
+    #    return dt.timestamp()
+    # else:
+    dt = arrow.get(dt)
+    if is_local_time:
+        # Assume time given in local time - assign local timezone info
+        dt = local_to_utc(dt)
+    return dt.timestamp()
 
 
 def to_datetime(ts, local=False):
@@ -50,7 +64,7 @@ if __name__ == "__main__":
     cardinal_utc_time = arrow.get(datetime(2000, 1, 1, 1, 1, 1))
     utc_timestamp = cardinal_utc_time.timestamp()
     primary_datetime = datetime(2000, 1, 1, 1, 1, 1)
-    
+
     assert(to_timestamp(cardinal_utc_time) == utc_timestamp)
     assert(to_timestamp(primary_datetime) == utc_timestamp)
     assert(to_timestamp(primary_datetime, is_local_time=False) == utc_timestamp)

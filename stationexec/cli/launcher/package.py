@@ -17,7 +17,11 @@ from threading import Thread
 from zipfile import ZipFile, ZIP_DEFLATED
 
 import simplejson
-from stationexec.toolbox.tool_utilities import get_tool_path, load_tool_object, ToolNotFound
+from stationexec.toolbox.tool_utilities import (
+    get_tool_path,
+    load_tool_object,
+    ToolNotFound,
+)
 from stationexec.utilities import config
 from stationexec.utilities.ioloop_ref import IoLoop
 from tornado import gen
@@ -48,7 +52,7 @@ python_version = "{0}.{1}".format(sys.version_info.major, sys.version_info.minor
 python_version_long = None
 debug = True
 exiting = False
-is_64bits = sys.maxsize > 2**32
+is_64bits = sys.maxsize > 2 ** 32
 python_embed_byte_version = "amd64" if is_64bits else "win32"
 
 
@@ -76,7 +80,9 @@ def timer():
             if debug:
                 print("------- {0}: {1}s".format(func.__name__, duration))
             return ret
+
         return inner
+
     return decorator
 
 
@@ -85,7 +91,9 @@ def progress_spinner():
     prog = ["-", "\\", "|", "/"]
     i = 0
     while exiting is False:
-        print("\rWorking{0:<4} {1}{2}".format("." * (i % 4), prog[i % 4], " " * 2), end="")
+        print(
+            "\rWorking{0:<4} {1}{2}".format("." * (i % 4), prog[i % 4], " " * 2), end=""
+        )
         i += 1
         time.sleep(0.25)
     print("\rComplete! {0:<10}".format(" " * 10), end="")
@@ -105,7 +113,9 @@ def add_python_version_string():
     global python_version
     global python_version_long
     version = "python{0}".format("".join(python_version.split(".")))
-    version_long = "python{0}_{1}".format("".join(python_version_long.split(".")), "64" if is_64bits else "32")
+    version_long = "python{0}_{1}".format(
+        "".join(python_version_long.split(".")), "64" if is_64bits else "32"
+    )
 
     write(PYTHON_VERSION_LOCATION, version.encode("utf8"))
     write(PYTHON_LONG_VERSION_LOCATION, version_long.encode("utf8"))
@@ -122,8 +132,10 @@ def get_latest_python_from_cache():
     cache = get_cache_dir()
     pythons = get_latest_python_in_string("".join(os.listdir(cache)))
     if len(pythons) > 0:
-        v = os.path.join(cache, "python-{0}-embed-{1}.zip".
-                         format(pythons[0], python_embed_byte_version))
+        v = os.path.join(
+            cache,
+            "python-{0}-embed-{1}.zip".format(pythons[0], python_embed_byte_version),
+        )
         if os.path.exists(v):
             return v, pythons[0]
         else:
@@ -154,12 +166,18 @@ def download_embedded_python():
         global python_version
         global python_version_long
         if py is None:
-            python_version_long = "{0}.{1}".format(python_version, sys.version_info.micro)
-            py_path = "python-{0}-embed-{1}.zip".format(python_version_long, python_embed_byte_version)
+            python_version_long = "{0}.{1}".format(
+                python_version, sys.version_info.micro
+            )
+            py_path = "python-{0}-embed-{1}.zip".format(
+                python_version_long, python_embed_byte_version
+            )
             current_dir = os.path.dirname(os.path.abspath(__file__))
             py = os.path.join(current_dir, py_path)
             if not os.path.exists(py):
-                raise Exception("No offline python installations found - run in non-debug mode to download")
+                raise Exception(
+                    "No offline python installations found - run in non-debug mode to download"
+                )
         else:
             python_version_long = version
         with open(py, "rb") as f:
@@ -168,6 +186,7 @@ def download_embedded_python():
         if sys.version_info >= (3, 5):
             import asyncio
             from tornado.platform.asyncio import AnyThreadEventLoopPolicy
+
             asyncio.set_event_loop_policy(AnyThreadEventLoopPolicy())
 
         IoLoop().init()
@@ -194,10 +213,14 @@ def _download_python(latest_cached_file=None, latest_version=None):
     except (HTTPError, error) as e:
         if latest_cached_file is None:
             exiting = True
-            raise Exception("Unable to connect to internet to download Python: {0}".format(e))
+            raise Exception(
+                "Unable to connect to internet to download Python: {0}".format(e)
+            )
         else:
-            print("Cannot connect to internet to download latest Python - "
-                  "grabbing latest from cache: Python {0}".format(latest_version))
+            print(
+                "Cannot connect to internet to download latest Python - "
+                "grabbing latest from cache: Python {0}".format(latest_version)
+            )
             with open(latest_cached_file, "rb") as f:
                 zip_file = f.read()
                 python_version_long = latest_version
@@ -211,14 +234,21 @@ def _download_python(latest_cached_file=None, latest_version=None):
     #  until one is found
     for v in matches:
         try:
-            if "python-{0}-embed-{1}.zip".format(v, python_embed_byte_version) == latest_filename:
+            if (
+                "python-{0}-embed-{1}.zip".format(v, python_embed_byte_version)
+                == latest_filename
+            ):
                 # This version is found in the cache - no need to download
                 with open(latest_cached_file, "rb") as f:
                     zip_file = f.read()
                     python_version_long = v
                 IoLoop().current().spawn_callback(IoLoop().current().stop)
                 return
-            url = "https://www.python.org/ftp/python/{0}/python-{0}-embed-{1}.zip".format(v, python_embed_byte_version)
+            url = (
+                "https://www.python.org/ftp/python/{0}/python-{0}-embed-{1}.zip".format(
+                    v, python_embed_byte_version
+                )
+            )
             response = yield AsyncHTTPClient().fetch(url)
         except HTTPError:
             pass
@@ -226,11 +256,22 @@ def _download_python(latest_cached_file=None, latest_version=None):
             python_version_long = v
             break
     if python_version_long is None:
-        raise Exception("No suitable python embedded build found for Python{0}".format(python_version))
+        raise Exception(
+            "No suitable python embedded build found for Python{0}".format(
+                python_version
+            )
+        )
     zip_file = response.body
     # Write to cache for next time
-    with open(os.path.join(get_cache_dir(), "python-{0}-embed-{1}.zip".
-              format(python_version_long, python_embed_byte_version)), "wb") as f:
+    with open(
+        os.path.join(
+            get_cache_dir(),
+            "python-{0}-embed-{1}.zip".format(
+                python_version_long, python_embed_byte_version
+            ),
+        ),
+        "wb",
+    ) as f:
         f.write(zip_file)
     IoLoop().current().spawn_callback(IoLoop().current().stop)
 
@@ -263,11 +304,15 @@ def add_python_resources(timeout=10):
                     file_data = ef.read()
                     # Minimal installation of python requires only pythonxx.dll and .zip - everything
                     #  else can be unzipped later - adding _ctypes to allow for showing popup
-                    if py_file in ["{0}.dll".format(py_version),
-                                   "{0}.zip".format(py_version),
-                                   "_ctypes.pyd"]:
+                    if py_file in [
+                        "{0}.dll".format(py_version),
+                        "{0}.zip".format(py_version),
+                        "_ctypes.pyd",
+                    ]:
                         write(PY_RESOURCE_FILES_START_LOCATION + i, file_data)
-                        write(PY_RESOURCE_NAMES_START_LOCATION + i, py_file.encode("utf8"))
+                        write(
+                            PY_RESOURCE_NAMES_START_LOCATION + i, py_file.encode("utf8")
+                        )
                         i = i + 1
                     else:
                         wzf.writestr(py_file, file_data)
@@ -278,7 +323,9 @@ def add_python_resources(timeout=10):
     write(PY_RESOURCE_ZIP_LOCATION, out_stream.getvalue())
 
     zip_hash = simplejson.dumps(hashes).encode("utf8")
-    py_hash_file = "{0}_{1}hash.json".format(py_version_long, "64" if is_64bits else "32")
+    py_hash_file = "{0}_{1}hash.json".format(
+        py_version_long, "64" if is_64bits else "32"
+    )
     write(PY_RESOURCE_HASH_NAME_LOCATION, py_hash_file.encode("utf8"))
     write(PY_RESOURCE_HASH_LOCATION, zip_hash)
 
@@ -328,15 +375,21 @@ def add_zip_dependencies(extra_requirements=None):
 def add_zip_source(station):
     extra_dependencies = []
     tool_manifest_data = config.load_config(config.get_all_paths()["tool_manifest"])
-    paths_to_save = [(os.path.join("stations", station), config.get_all_paths()["station"])]
+    paths_to_save = [
+        (os.path.join("stations", station), config.get_all_paths()["station"])
+    ]
     # Get station specified dependencies
-    station_obj = config.remote_path_import(os.path.join(config.get_all_paths()["station"], "station.py"))
+    station_obj = config.remote_path_import(
+        os.path.join(config.get_all_paths()["station"], "station.py")
+    )
     extra_dependencies.extend(getattr(station_obj, "dependencies", []))
     for tool in tool_manifest_data:
         if tool["tool_type"] in ["station_storage", "config_tool"]:
             # TODO Ignore internal tools - update if new internal tools created
             continue
-        paths_to_save.append((os.path.join("tools", tool["tool_type"]), get_tool_path(tool["tool_type"])))
+        paths_to_save.append(
+            (os.path.join("tools", tool["tool_type"]), get_tool_path(tool["tool_type"]))
+        )
         try:
             # Get tool specified dependencies
             tool = load_tool_object(tool["tool_type"], "external")
@@ -410,12 +463,20 @@ def main(station, _debug=False, force_32=False):
         res_packer_exe = "resource_updater64.exe"
     else:
         res_packer_exe = "resource_updater32.exe"
-    res_packer_exe = os.path.join(os.path.dirname(os.path.abspath(__file__)), res_packer_exe)
+    res_packer_exe = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), res_packer_exe
+    )
 
-    station_dist_folder = os.path.join(os.path.dirname(config.get_all_paths()["station"]), "dist")
+    station_dist_folder = os.path.join(
+        os.path.dirname(config.get_all_paths()["station"]), "dist"
+    )
     os.makedirs(station_dist_folder, exist_ok=True)
-    exe_path = os.path.join(station_dist_folder, "{0}{1}{2}.exe".
-                            format(station, "_d" if debug else "", "" if is_64bits else "32"))
+    exe_path = os.path.join(
+        station_dist_folder,
+        "{0}{1}{2}.exe".format(
+            station, "_d" if debug else "", "" if is_64bits else "32"
+        ),
+    )
 
     temp_folder = os.path.join(station_dist_folder, "temp")
     if os.path.exists(temp_folder):
@@ -428,11 +489,13 @@ def main(station, _debug=False, force_32=False):
         if d.lower().endswith(".tmp"):
             os.remove(os.path.join(station_dist_folder, d))
 
-    if do_update_version_string \
-            and do_update_shim_file \
-            and do_update_dependencies \
-            and do_update_source \
-            and do_update_python:
+    if (
+        do_update_version_string
+        and do_update_shim_file
+        and do_update_dependencies
+        and do_update_source
+        and do_update_python
+    ):
         if os.path.exists(exe_path):
             os.remove(exe_path)
         with open(exe_path, "wb") as fw:
@@ -486,7 +549,11 @@ def main(station, _debug=False, force_32=False):
         print("-- Total: {0}s".format(_end - _start))
 
     time.sleep(0.3)
-    print("\n'{0}' created in '{1}'".format(os.path.basename(exe_path), os.path.dirname(exe_path)))
+    print(
+        "\n'{0}' created in '{1}'".format(
+            os.path.basename(exe_path), os.path.dirname(exe_path)
+        )
+    )
 
 
 if __name__ == "__main__":

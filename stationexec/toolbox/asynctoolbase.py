@@ -63,7 +63,9 @@ class AsyncToolBase(Tool):
         try:
             self._asynctool.write(data)
         except Exception as e:
-            log.exception("Error while sending async data in {0}".format(self.tool_id), e)
+            log.exception(
+                "Error while sending async data in {0}".format(self.tool_id), e
+            )
 
     def receive(self, wait=False, after=None):
         """
@@ -80,7 +82,9 @@ class AsyncToolBase(Tool):
         try:
             return self._asynctool.read(wait, after)
         except Exception as e:
-            log.exception("Error while receiving async data in {0}".format(self.tool_id), e)
+            log.exception(
+                "Error while receiving async data in {0}".format(self.tool_id), e
+            )
             return None
 
     def send_receive(self, data, clear_buffer=False):
@@ -98,7 +102,9 @@ class AsyncToolBase(Tool):
             self.send(data)
             return self.receive(wait=True, after=now)
         except Exception as e:
-            log.exception("Error while doing async send_receive in {0}".format(self.tool_id), e)
+            log.exception(
+                "Error while doing async send_receive in {0}".format(self.tool_id), e
+            )
             return None
 
     def clear_rx_buffer(self):
@@ -109,7 +115,9 @@ class AsyncToolBase(Tool):
         try:
             self._asynctool.clear_rx_queue()
         except Exception as e:
-            log.exception("Error while clearing async rx data in {0}".format(self.tool_id), e)
+            log.exception(
+                "Error while clearing async rx data in {0}".format(self.tool_id), e
+            )
 
     def run_on_connect(self, method, delay=0):
         self._asynctool.run_on_connect(method, delay)
@@ -129,7 +137,7 @@ class AsyncTool(object):
     """An communication class to base comm tools on."""
 
     def __init__(self, delimiter=None, no_delimiter=False, timeout=1, **kwargs):
-        # type: (str, int, **int) -> None
+        # type: (str, bool, int, **int) -> None
         """
         Initialize object.
 
@@ -167,7 +175,9 @@ class AsyncTool(object):
         self.poll_seconds = float(kwargs.get("poll_seconds", 0.1))
         self.timeout = int(timeout)
         if self.timeout > 10:
-            log.warning("Unusually long timeout of {0}s found for tool".format(self.timeout))
+            log.warning(
+                "Unusually long timeout of {0}s found for tool".format(self.timeout)
+            )
         self.delimiter = None if delimiter is None else to_bytes(delimiter)
         self.no_delimiter = no_delimiter
         self.message_processor = None
@@ -207,7 +217,7 @@ class AsyncTool(object):
             # Setup TCP connection details
             host = kwargs.get("host", None)
             port = kwargs.get("port", None)
-            assert (host is not None)
+            assert host is not None
             self.host = host
             self.port = port
 
@@ -331,13 +341,20 @@ class AsyncTool(object):
         try:
             ser.open()
         except Exception as e:
-            log.debug(2, "Unable to open to serial port {0}. Error: {1}".format(self.com, str(e)))
+            log.debug(
+                2,
+                "Unable to open to serial port {0}. Error: {1}".format(
+                    self.com, str(e)
+                ),
+            )
         else:
             self._stream = ser
             try:
                 self.on_connect()
             except Exception as e:
-                log.exception("Unable to start reader for serial port {0}".format(self.com), e)
+                log.exception(
+                    "Unable to start reader for serial port {0}".format(self.com), e
+                )
             else:
                 self.is_active = True
                 self.set_online_status(True)
@@ -357,7 +374,7 @@ class AsyncTool(object):
                 return
 
         # If IP address is all zeros, skip so that reconnection error messages are avoided
-        if (self.host == '0.0.0.0'):
+        if self.host == '0.0.0.0':
             return
 
         log.debug(4, "Connecting to TCP {0}:{1}".format(self.host, self.port))
@@ -365,22 +382,33 @@ class AsyncTool(object):
             s = socket.socket(socket.AF_INET, socket.SOCK_STREAM, 0)
             _stream = tornado.iostream.IOStream(s)
         except socket.error as e:
-            log.exception("Unable to setup socket for TCP {0}:{1}.".format(self.host, self.port), e)
+            log.exception(
+                "Unable to setup socket for TCP {0}:{1}.".format(self.host, self.port),
+                e,
+            )
             self.close_on_error()
             raise e
         try:
             yield _stream.connect((self.host, self.port))
         except tornado.iostream.StreamClosedError as e:
-            log.debug(3, "Unable to setup socket for TCP {0}:{1}. Errors: '{2}', '{3}'".
-                      format(self.host, self.port, str(e), str(e.real_error)))
+            log.debug(
+                3,
+                "Unable to setup socket for TCP {0}:{1}. Errors: '{2}', '{3}'".format(
+                    self.host, self.port, str(e), str(e.real_error)
+                ),
+            )
             self.close_on_error()
         else:
             self._stream = _stream
             try:
                 self.on_connect()
             except Exception as e:
-                log.exception("Unable to start reader for TCP {0}:{1}".
-                              format(self.host, self.port), e)
+                log.exception(
+                    "Unable to start reader for TCP {0}:{1}".format(
+                        self.host, self.port
+                    ),
+                    e,
+                )
             else:
                 self.is_active = True
                 self.set_online_status(True)
@@ -573,8 +601,11 @@ class AsyncTool(object):
         :return: None
         """
         with self._rx_queue_lock:
-            no_old_data = [msg for msg in self._rx_queue if
-                           (datetime.now() - msg.timestamp).seconds < self.rx_time_to_live]
+            no_old_data = [
+                msg
+                for msg in self._rx_queue
+                if (datetime.now() - msg.timestamp).seconds < self.rx_time_to_live
+            ]
 
             if after is not None:
                 no_old_data = [msg for msg in no_old_data if msg.timestamp > after]

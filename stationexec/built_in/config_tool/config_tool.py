@@ -15,9 +15,7 @@ import simplejson
 
 version = "0.1"
 dependencies = ["simplejson"]
-default_configurations = {
-    "data_location": "test_config.json"
-}
+default_configurations = {"data_location": "test_config.json"}
 
 
 class ConfigTool(Tool):
@@ -33,7 +31,6 @@ class ConfigTool(Tool):
         # check to see if path is valid...
         # dirname = os.path.dirname(self.data_loc)
         # fname = self.data_loc[len(dirname):]
-
 
     def initialize(self):
         """ Prepare tool for operation """
@@ -86,9 +83,7 @@ class ConfigTool(Tool):
             simplejson.dump(data, file, indent=4)
 
     def get_endpoints(self):
-        endpoints = [
-            (f"/tool/{self.tool_id}/data", DataHandler, {"tool": self})
-        ]
+        endpoints = [(f"/tool/{self.tool_id}/data", DataHandler, {"tool": self})]
 
         return endpoints
 

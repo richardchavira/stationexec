@@ -122,8 +122,9 @@ def _http10_request(method, url, body, decode_json):
     content_type = "application/json" if len(body) > 0 else "text/html"
 
     # Manually build the HTTP 1.0 message, appending body (which may not have content)
-    msg = "{0} {1} HTTP/1.0\r\nContent-Length: {2}\r\nHost: {3}\r\nContent-Type: {4}\r\nConnection: Close\r\n\r\n{5}". \
-        format(method, url, len(body), host, content_type, body)
+    msg = "{0} {1} HTTP/1.0\r\nContent-Length: {2}\r\nHost: {3}\r\nContent-Type: {4}\r\nConnection: Close\r\n\r\n{5}".format(
+        method, url, len(body), host, content_type, body
+    )
 
     # Connect to server socket, send message, and retrieve response
     # All connection exceptions allowed to bubble out for user to catch
@@ -146,7 +147,7 @@ def _http10_request(method, url, body, decode_json):
         response_code = int(head[1])
 
         crlf = rmsg.find('\r\n\r\n')
-        response_body = rmsg[crlf + 4:]
+        response_body = rmsg[crlf + 4 :]
 
     # If desired, attempt to decode the response body as JSON - parsing errors
     # allowed to bubble up

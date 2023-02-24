@@ -1,14 +1,19 @@
 :root {
     --header-height: 50px;
     --sidebar-width: 10px;
+    --user-banner-height: 40px;
     --header-z-index: 1;
     --modal-z-index: 2;
     --theme-primary-color: #221a50;
+    --theme-header-color: #cccccc;
+    --theme-header-text-enabled: #333333;
+    --theme-header-text-disabled: #aaaaaa;
+    --theme-button-color: rgb(116, 92, 214);
 }
 
 h1, h2, h3, h4, h5, h6 {
     margin: 2px 0;
-    color: #333333;
+    color: var(--theme-header-text-enabled);;
 }
 
 /**************************************************/
@@ -20,7 +25,7 @@ h1, h2, h3, h4, h5, h6 {
     height: var(--header-height);
     line-height: var(--header-height);
     width: 100%;
-    background: #cccccc;
+    background: var(--theme-header-color);
     z-index: var(--header-z-index);
 }
 
@@ -28,7 +33,7 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: bold;
     font-size: x-large;
     padding: 0 10px;
-    color: #333333;
+    color: var(--theme-header-text-enabled);;
 }
 
 .header-title-link {
@@ -50,11 +55,23 @@ h1, h2, h3, h4, h5, h6 {
 .header-nav-link {
     text-decoration: none;
     display: block;
+    outline: none;
 }
 
 .header-nav-text {
     font-weight: bold;
-    color: #333333;
+    color: var(--theme-header-text-enabled);;
+}
+
+.disabled-header-nav-link {
+    outline: none;
+    pointer-events: none;
+    cursor: default;
+    text-decoration: none;
+}
+
+.disabled-header-nav-text {
+    color: var(--theme-header-text-disabled);
 }
 
 .active-nav-link {
@@ -91,7 +108,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 #main {
-    padding-top: var(--header-height);
+    padding-top: calc(var(--header-height) + var(--user-banner-height));
     padding-left: calc(10px + var(--sidebar-width));
 }
 #main:after {
@@ -130,6 +147,13 @@ h1, h2, h3, h4, h5, h6 {
 .message-view-control {
     width: 60%;
     height: 175px;
+    overflow-y: scroll;
+    background-color: black;
+}
+
+.message-view-text {
+    margin: 0 1%;
+    color: white;
 }
 
 /**************************************************/
@@ -138,6 +162,7 @@ h1, h2, h3, h4, h5, h6 {
     width: 92vw;
     border-radius: 5px;
     padding-bottom: 20px;
+    margin-bottom: 5px;
 }
 .ssb-ready {
     background: rgba(0, 255, 0, 0.5);
@@ -183,9 +208,26 @@ h1, h2, h3, h4, h5, h6 {
     display: inline-block;
     margin: 10px;
 }
+
+.station-tag-list {
+  list-style-type: none;
+  padding: 0;
+}
+
+.tag-form {
+  display: inline-block;
+  margin-right: 5px;
+  margin-left: 5px;
+  vertical-align:top;
+}
+
+.sequence-tag {
+  padding: 0;
+}
+
 /* https://css-tricks.com/overriding-default-button-styles/ */
 .se-button {
-    background: rgb(116, 92, 214);
+    background: var(--theme-button-color);;
     border: 0;
     border-radius: 5px;
     color: white;
@@ -296,7 +338,7 @@ h1, h2, h3, h4, h5, h6 {
 
 .tool-status-text {
     font-weight: bold;
-    color: #333333;
+    color: var(--theme-header-text-enabled);;
 }
 
 .tool-page-user-ui {
@@ -307,6 +349,16 @@ h1, h2, h3, h4, h5, h6 {
 
 .station-loaded-html {
 
+}
+
+/**************************************************/
+
+.operation-popup {
+    flex-direction: column;
+    min-width: 90%;
+    min-height: 100%;
+    margin: auto;
+    padding: 5% 0 5% 0
 }
 
 /**************************************************/
@@ -438,17 +490,135 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .modal-popup-card {
-    width: 55%;
+	width: 55%;
+	margin: auto;
+	padding: 2% 0;
+	max-height: 70%;
+	min-height: 20%;
+	display: grid;
+	justify-content: center;
+	background: rgba(240, 240, 240, 1);
+	border-radius: 10px;
+	font-weight: bold;
+	overflow-y: scroll;
+}
+
+.modal-input {
     margin: auto;
-    overflow-y: auto;
-    max-height: 70%;
-    min-height: 20%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: rgba(240, 240, 240, 1);
-    border-radius: 10px;
+}
+
+/**************************************************/
+
+.user-banner {
+    position: fixed;
+    top: var(--header-height);
+    left: 0;
+    line-height: var(--user-banner-height);
+    height: var(--user-banner-height);
+    width: 100%;
+    z-index: var(--header-z-index);
+}
+
+.user-banner-username {
     font-weight: bold;
+    font-size: x-large;
+    padding: 0 10px;
+    color: var(--theme-header-text-enabled);
+}
+
+.user-banner-mode {
+    position:absolute;
+    left: 50%;
+    transform: translate(-50%, 0%);
+    font-weight: bold;
+    font-size: x-large;
+    color: var(--theme-header-text-enabled);
+}
+
+.data-storage-option {
+    position: absolute;
+    right: 2%;
+    font-weight: bold;
+    font-size: x-large;
+    color: var(--theme-header-text-enabled);
+}
+
+/**************************************************/
+
+.user-display {
+    margin-top: 16px;
+    padding-left: 30px;
+    padding-right: 30px;
+    border-radius: 16px;
+    border: 3px solid var(--theme-primary-color);
+    background-color: var(--theme-header-color);
+    width: 33%;
+}
+
+.user-header {
+    font-weight: bold;
+    font-size: x-large;
+}
+
+.user-info td {
+    font-weight: bold;
+    font-size: x-large;
+    padding: 16px
+}
+
+.user-label {
+    display: block;
+    padding-top: 16px;
+}
+
+.user-input {
+    width: 95%;
+}
+
+.user-button {
+    width: 95%;
+}
+
+.user-button-logout {
+    background: rgb(82, 90, 105);
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.mode-border {
+    margin-top: 16px;
+    border-radius: 8px;
+}
+
+input[name="mode"]{
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    padding: 3px;
+    outline: none;
+    background-clip: content-box;
+    border: 2px solid var(--theme-primary-color);
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+input[name="mode"] + label{
+    display: inline-block;
+    vertical-align: middle;
+    padding-left: 2px;
+}
+
+input[name="mode"]:checked {
+    background-color: var(--theme-button-color);
+}
+
+input[name="mode"]:checked + label{
+    font-weight: bold;
+    color: var(--theme-button-color);
 }
 
 /**************************************************/

@@ -21,6 +21,7 @@ class OperationState(IntEnum):
     :RESULTFAILURE: result boundary failure
     :ABORTED: asked to shut down
     """
+
     IDLE = 0
     RUNNING = 1
     COMPLETED = 100

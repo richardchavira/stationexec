@@ -4,16 +4,19 @@
 
 import time
 from threading import Thread
+from enum import IntEnum
 
 from stationexec.logger import log
 from stationexec.sequencer.operationstates import OperationState
 from stationexec.sequencer.result import Result
 from stationexec.sequencer.utilities import evaluate_conditional, flatten_2d_list, named_method_on_list, \
     parse_conditional_reference, parse_data_reference, unique_list
-from stationexec.utilities.exceptions import AbortException, ToolUnavailableException, \
+from stationexec.utilities.exceptions import AbortException, MissingResult, ToolUnavailableException, \
     ToolInUseException
 from stationexec.utilities.uuidstr import get_uuid
+from stationexec.utilities.error_codes import ErrorCode
 
+from stationexec.station.events import emit_event, register_for_event, clear_event_subscribers, InfoEvents, StorageEvents
 
 class OpData(object):
     def __init__(self, op_info, system_configs, tool_checkout, report_error, runtimedata=None,
@@ -62,6 +65,8 @@ class OpData(object):
 
         self._results = {}
 
+        self._system_configs = system_configs
+
         # Setup conditional execution for this operation if defined
         if self.is_conditional:
             try:
@@ -69,7 +74,8 @@ class OpData(object):
                                                                            system_configs)
             except KeyError as e:
                 self._report_error(
-                    "Operation '{0}' conditional missing _config data: key error {1}".format(self.id, e))
+                    "Operation '{0}' conditional missing _config data: \
+                    key error {1}".format(self.id, e))
             else:
                 self.operand1 = op1["value"]
                 self.operand2 = op2["value"]
@@ -87,7 +93,8 @@ class OpData(object):
                     ref = parse_data_reference(key, value, system_configs)
                 except KeyError as e:
                     self._report_error(
-                        "Operation '{0}' missing _config data assigned to '{1}': key error {2}".format(self.id, key, e))
+                        "Operation '{0}' missing _config data assigned to '{1}': \
+                            key error {2}".format(self.id, key, e))
                 else:
                     self._external_data.append(ref)
 
@@ -156,6 +163,11 @@ class OpData(object):
         data_dependencies = [key["source"] for key in self._external_data
                              if key["source"] not in ["_config", "_constant"]]
         self.dependencies = unique_list(flow_dependencies + data_dependencies + result_dependencies)
+
+        # error code event callback
+        #if not check_registered_event(self.id, InfoEvents.PASS_ERROR_CODE, self._pass_error_code):  # register here to have a callback for each operation
+        clear_event_subscribers(self.id, InfoEvents.PASS_ERROR_CODE)  # register here to have a callback for each operation
+        register_for_event(self.id, InfoEvents.PASS_ERROR_CODE, self._pass_error_code)  # register here to have a callback for each operation
 
     def _status_string(self):
         return "<OpData id='{0}' priority='{1}'>".format(self.id, self.priority)
@@ -358,7 +370,8 @@ class OpData(object):
             self.set_error("prepare() reported ERROR")
 
         if prc != OperationState.COMPLETED:
-            # If anything went wrong in cleanup or there is a requeue request, return all tools
+            # If anything went wrong in cleanup or there is a requeue request
+            # return all tools
             self.return_active_tools()
 
         return prc
@@ -404,7 +417,7 @@ class OpData(object):
                 self._object.shutdown()
             else:
                 import ctypes
-                log.info("Terminating process operation '{0}'".format(self.id))
+                log.info("Terminating process operation '{0}', thread id '{1}'".format(self.id, self.thread_id))
                 # Attempt to create an AbortException in the thread itself, which
                 # should tell the thread to exit.
                 # http://www.aleax.it/Python/os03_threads_interrupt.pdf
@@ -440,7 +453,8 @@ class OpData(object):
         """ Return the current operation object run status """
         exit_status = self._object.get_status()
         if check_passing:
-            # Only check for a result failure when getting status as this check isn't important in sequence
+            # Only check for a result failure when getting status as this
+            # check isn't important in sequence
             if self._results_passed is False and exit_status == OperationState.COMPLETED:
                 # If code is 100 (operation completed) but it did not pass (passing == 0)
                 #  then one or more of the results failed - results failure code is 140
@@ -454,6 +468,40 @@ class OpData(object):
     def set_loop_iteration(self, iteration):
         """ Update the loop iteration the operation is in """
         self.set_object_attribute("_loop_iteration", iteration)
+
+    def store_error_code(self, error_code: ErrorCode):
+        self._object.store_error_code(error_code)
+    
+    def _pass_error_code(self, source, **kwargs):
+        if source == self.id:
+            error_code = kwargs.get("error_code")
+            error_code["operation"] = self.uuid
+            emit_event(StorageEvents.ON_ERROR_CODE, error_code)
+            log.debug(5, "Operation '{0}' storing error code: '{1}'".format(self.id, error_code) )
+            
+            failure_code = error_code.get('error_code')
+            if failure_code:
+                # check if codes are IntEnum or int
+                if isinstance(failure_code, IntEnum):
+                    failure_code = failure_code.name
+                
+                component_code = error_code.get('component_code')
+                if isinstance(component_code, IntEnum):
+                    component_code = component_code.name
+                
+                message = (
+                    f"ERROR: {failure_code}, "
+                    f"COMPONENT: {component_code}, "
+                    f"DEBUG MESSAGE: {error_code.get('debug_message')}"
+                )
+                
+                emit_event(
+                    InfoEvents.ALERT_UPDATE,
+                    {
+                        "source": f'operation.{source}',
+                        "message": message
+                    }
+                )
 
     def update_object_attributes(self):
         # Set n-up position of operation if operation is n-up
@@ -504,9 +552,8 @@ class OpData(object):
             else:
                 result["id"] = name
                 self._results[name] = Result(result, self._report_error,
-                                             parent_operation=self.id)
-                self._results[name].do_store = result["store"]
-                self._results[name].is_result = False
+                                             parent_operation=self.id,
+                                             system_configs=self._system_configs)
                 self._results[name].store_result(result)
 
         missing_results = []
@@ -514,8 +561,8 @@ class OpData(object):
             if name not in saved_results:
                 missing_results.append(name)
         if len(missing_results) != 0:
-            raise Exception("Required result(s) not saved in not saved in operation '{0}': "
-                            "{1}".format(self.id, ", ".join(missing_results)))
+            raise MissingResult("Required result(s) not saved in not saved in operation '{0}': "
+                            "{1}".format(self.id, ", ".join(missing_results)), missing_results)
 
     def get_result_values(self):
         return self._for_all_results("get_value")
@@ -531,7 +578,14 @@ class OpData(object):
         """ Return the names of all of the known results """
         return self._for_all_results("get_name")
 
-    def did_pass(self, storage_cache):
+    def did_pass(self, storage_cache, pass_skipped_conditional=True):
+        if pass_skipped_conditional:
+            # if a conditional operation whose condition evaluates to False
+            # (operation to be skipped) then pass operation
+            if self.is_conditional and not self.evaluate(storage_cache):
+                self._results_passed = True
+                return True
+
         passing = []
         for _result, res_obj in self._results.items():
             if res_obj.is_result:
@@ -544,11 +598,10 @@ class OpData(object):
             self._results_passed = True
             return True
         else:
-            # This operation passed if there are no failing results AND if the operation actually
-            # completed - if a conditional operation stores results and it did not execute,
-            # this operation will be counted a failure
-            # TODO Consider making this auto-failure for conditionals configurable in future
-            self._results_passed = (False not in passing) and (self.get_run_status() == OperationState.COMPLETED)
+            # This operation passed if there are no failing results AND if the operation completed
+            run_status = self.get_run_status()
+            self._results_passed = ((False not in passing)
+                                    and (run_status == OperationState.COMPLETED))
             return self._results_passed
 
     def _for_all_results(self, method, *args):

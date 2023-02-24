@@ -8,7 +8,16 @@ Database object definitions
 All times must be stored in UTC format
 """
 import simplejson
-from sqlalchemy import Column, DateTime, Integer, LargeBinary, Numeric, SmallInteger, String, Text
+from sqlalchemy import (
+    Column,
+    DateTime,
+    Integer,
+    LargeBinary,
+    Numeric,
+    SmallInteger,
+    String,
+    Text,
+)
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import deferred
 from sqlalchemy.types import TypeDecorator
@@ -22,6 +31,7 @@ Base = declarative_base()
 class JSONEncoded(TypeDecorator):
     """Store value as JSON string -
     https://docs.sqlalchemy.org/en/13/core/custom_types.html#marshal-json-strings"""
+
     impl = LargeBinary(length=(2 ** 32) - 1)
 
     def process_bind_param(self, value, dialect):
@@ -106,6 +116,18 @@ class OperationEnd(Base):
     created = Column(DateTime, default=get_utc_now, index=True)
 
 
+class ErrorCode(Base):
+    __tablename__ = "error_codes"
+    uuid = Column(String(32), primary_key=True, unique=True, nullable=False)
+    operation = Column(String(32), nullable=False, index=True)
+    project_code=Column(Integer, nullable=True)
+    component_code = Column(Integer, nullable=True)
+    error_code = Column(Integer, nullable=False)
+    debug_message = Column(String, nullable=True)
+    timestamp = Column(DateTime, nullable=False)
+    created = Column(DateTime, default=get_utc_now, index=True)
+
+
 class Result(Base):
     __tablename__ = "results"
     uuid = Column(String(32), primary_key=True, unique=True, nullable=False)
@@ -140,7 +162,9 @@ class DataStorage(Base):
 
 class Logging(Base):
     __tablename__ = "logging"
-    id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True)
+    id = Column(
+        Integer, primary_key=True, unique=True, nullable=False, autoincrement=True
+    )
     stream = Column(String(16), nullable=False)
     message = Column(Text, nullable=False)
     created = Column(DateTime, default=get_utc_now, index=True)
@@ -151,6 +175,20 @@ class Logging(Base):
 
 class Maintenance(Base):
     __tablename__ = "maintenance"
-    id = Column(Integer, primary_key=True, unique=True, nullable=False, autoincrement=True)
+    id = Column(
+        Integer, primary_key=True, unique=True, nullable=False, autoincrement=True
+    )
     message = Column(Text, nullable=False)
     created = Column(DateTime, default=get_utc_now, index=True)
+
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(
+        Integer, primary_key=True, unique=True, nullable=False, autoincrement=True
+    )
+    name = Column(String(255), nullable=False)
+    password_hash = Column(String(128))
+    password_salt = Column(String(64))
+    user_info = Column(String(255))
+

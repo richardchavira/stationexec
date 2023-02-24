@@ -12,12 +12,12 @@ from stationexec.toolbox.tool import Tool
 
 version = "1.0"
 dependencies = []
-default_configurations = {
-}
+default_configurations = {}
 
 
 class Exampletool2(Tool):
     """ Setup tool with configuration arguments """
+
     def __init__(self, **kwargs):
         super(Exampletool2, self).__init__(**kwargs)
 

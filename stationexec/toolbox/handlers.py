@@ -46,7 +46,10 @@ class ToolRouter(Router):
         else:
             endpoints = _get_tool_routes_()
             if request.remote_ip not in ["::1", "localhost", "127.0.0.1"]:
-                log.debug(10, "Request received from {0}: {1}".format(request.remote_ip, request))
+                log.debug(
+                    10,
+                    "Request received from {0}: {1}".format(request.remote_ip, request),
+                )
 
             handler = None
             for endpoint in endpoints:
@@ -59,8 +62,13 @@ class ToolRouter(Router):
                     break
             if handler is None:
                 handler = ToolRouteError
-        return self.app.get_handler_delegate(request, handler, target_kwargs=target_kwargs,
-                                             path_args=path_args, path_kwargs=path_kwargs)
+        return self.app.get_handler_delegate(
+            request,
+            handler,
+            target_kwargs=target_kwargs,
+            path_args=path_args,
+            path_kwargs=path_kwargs,
+        )
 
 
 class ToolCommand(ExecutiveHandler):
@@ -71,9 +79,10 @@ class ToolCommand(ExecutiveHandler):
         """
         tool_id = self.json_args.get("target")
         cmd = self.json_args.get("arguments")
-        emit_event(InfoEvents.TOOL_COMMAND, {"source": "handler.ToolCommand",
-                                             "target": tool_id,
-                                             "cmd": cmd})
+        emit_event(
+            InfoEvents.TOOL_COMMAND,
+            {"source": "handler.ToolCommand", "target": tool_id, "cmd": cmd},
+        )
 
 
 class ToolboxStatus(ExecutiveHandler):
@@ -86,7 +95,9 @@ class ToolboxStatus(ExecutiveHandler):
     def get(self, parameter=None):
         """Write JSON encoded string containing status of all tools"""
         self.set_header("Content-Type", "application/json")
-        self.set_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+        self.set_header(
+            "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0"
+        )
         self.write(simplejson.dumps(self._get_status()))
 
 

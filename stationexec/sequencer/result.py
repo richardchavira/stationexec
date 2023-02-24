@@ -6,20 +6,31 @@ import sys
 
 import simplejson
 from stationexec.logger import log
-from stationexec.sequencer.utilities import evaluate_conditional, parse_result_condition
+from stationexec.sequencer.utilities import evaluate_conditional, parse_result_condition, string_to_int, string_to_bool
 from stationexec.utilities.uuidstr import get_uuid
 
 
 class Result(object):
-    def __init__(self, result, report_error, parent_operation, description="", system_configs=None, n_pos=None,
-                 n_up=1, n_up_operations=None):
+    def __init__(
+        self,
+        result,
+        report_error,
+        parent_operation,
+        description="",
+        system_configs=None,
+        n_pos=None,
+        n_up=1,
+        n_up_operations=None,
+    ):
         self._report_error = report_error
         self.parent = parent_operation
         self.id = result.get("id")
         if self.id is None:
             raise Exception("Result created with no 'id'")
-        self.description = description
+        self.description = result.get('description', description)
+        self.system_configs = system_configs
         self.type = result.get("type", "numeric")
+        self.condition = result.get('condition')
         self.uuid = get_uuid()
         self.size = 0
 
@@ -31,8 +42,11 @@ class Result(object):
         self._identifier = None
 
         if self.type not in self._get_valid_data_types():
-            self._report_error("Unknown result type '{0}' declared in result '{1}' of '{2}'"
-                               .format(self.type, self.id, self.parent))
+            self._report_error(
+                "Unknown result type '{0}' declared in result '{1}' of '{2}'".format(
+                    self.type, self.id, self.parent
+                )
+            )
 
         self.dependencies = []
         if n_up_operations is None:
@@ -53,28 +67,8 @@ class Result(object):
         self.is_result = "condition" in result and self.type in ["numeric", "boolean"]
         self.do_store = result.get("store", True)
 
-        if self.is_result and system_configs is not None:
-            try:
-                self.operator, op2, op3 = parse_result_condition(result.get("condition"),
-                                                                 system_configs)
-            except KeyError as e:
-                self._report_error(
-                    "Result '{0}' missing _config data in condition: key error {1}".format(self.id, e))
-            except ValueError as e:
-                if "inrange" in result.get("condition"):
-                    self._report_error("Result condition not formatted correctly - "
-                                       "inrange requires two arguments separated by comma - 'inrange 10, 20'. "
-                                       "Found '{0}' instead. Error: {1}".format(result.get("condition"), e))
-                else:
-                    self._report_error("Result condition not formatted correctly - no loop parameters given in '{0}'."
-                                       "Error: {1}".format(result.get("condition"), e))
-            else:
-                self.result_value = None
-                self.operand2 = op2["value"]
-                self.operand3 = op3["value"]
-                self._external_data.append(op2)
-                self._external_data.append(op3)
-
+        self.evaluate_conditional_operators()
+        
         if n_up <= 1:
             # Not in n_up mode - Clean up operation references in case there is reference to a
             # specific n_up operation name
@@ -93,13 +87,18 @@ class Result(object):
                     self._external_data.append(new_data)
                 else:
                     # Non-specific reference to an n-up operation - unclear which to choose
-                    self._report_error("Standard result referencing data in an n_up operation - "
-                                       "unclear which value to choose")
+                    self._report_error(
+                        "Standard result referencing data in an n_up operation - "
+                        "unclear which value to choose"
+                    )
         for idx in to_remove:
             del self._external_data[idx]
 
-        self.dependencies = [key["source"] for key in self._external_data
-                             if key["source"] not in ["_config", "_constant"]]
+        self.dependencies = [
+            key["source"]
+            for key in self._external_data
+            if key["source"] not in ["_config", "_constant"]
+        ]
 
     def __str__(self):
         return "<Result id='{0}'>".format(self.id)
@@ -117,23 +116,31 @@ class Result(object):
     def _evaluate(self, storage_cache=None):
         if not self._result_is_processed:
             return False
-
+        
+        self.evaluate_conditional_operators()
+        
         if self.is_result:
             if storage_cache:
                 self.update_external_data(storage_cache)
             conditionals_valid = True
             # Ensure that the conditional values are valid for comparison - int, float, bool
-            for op, op_name in zip([self.result_value, self.operand2, self.operand3],
-                                   ["result_value", "operand2", "operand3"]):
+            for op, op_name in zip(
+                [self.result_value, self.operand2, self.operand3],
+                ["result_value", "operand2", "operand3"],
+            ):
                 if op is None:
                     continue
                 if type(op) not in [int, float, bool]:
                     conditionals_valid = False
-                    log.error("Unsupported operand type in result condition: '{0}' '{1}'"
-                              .format(op_name, type(op)))
+                    log.error(
+                        "Unsupported operand type in result condition: '{0}' '{1}'".format(
+                            op_name, type(op)
+                        )
+                    )
             if conditionals_valid:
-                return evaluate_conditional(self.operator, self.result_value, self.operand2,
-                                            self.operand3)
+                return evaluate_conditional(
+                    self.operator, self.result_value, self.operand2, self.operand3
+                )
             else:
                 return False
         else:
@@ -161,7 +168,8 @@ class Result(object):
             "mimetype": self.type,
             "size": self.size,
             "is_result": self.is_result,
-            "parent": self.parent
+            "parent": self.parent,
+            "is_processed": self._result_is_processed
         }
 
     def get_name(self):
@@ -170,19 +178,33 @@ class Result(object):
     def store_result(self, result):
         if self.type is None and "type" in result:
             if result["type"] not in self._get_valid_data_types():
-                raise Exception("Unknown result type '{0}' in result '{1}' of '{2}' "
-                                "stored during sequence"
-                                .format(result["type"], self.id, self.parent))
+                raise Exception(
+                    "Unknown result type '{0}' in result '{1}' of '{2}' "
+                    "stored during sequence".format(
+                        result["type"], self.id, self.parent
+                    )
+                )
             self.type = result["type"]
 
         self._identifier = result.get("identifier")
+        
+        # condition specified at runtime in Operation.save_result
+        if result.get('condition'):
+            self.condition = result.get('condition')
+            self.type = result.get('type')
+            self.is_result = True
+        if result.get('description'):
+            self.description = result['description']
 
         try:
             self.result_value = self._type_coercion(result["value"])
         except Exception as e:
-            raise Exception("Unable to coerce value '{0}' of result '{1}' to "
-                            "type '{2}' in operation '{3}': {4}"
-                            .format(result["value"], self.id, self.type, self.parent, e))
+            raise Exception(
+                "Unable to coerce value '{0}' of result '{1}' to "
+                "type '{2}' in operation '{3}': {4}".format(
+                    result["value"], self.id, self.type, self.parent, e
+                )
+            )
 
         if not self.is_result:
             # Get size of the data
@@ -192,9 +214,13 @@ class Result(object):
 
     def _type_coercion(self, value):
         if self.type == "numeric":
-            value = float(value)
+            typed_value = string_to_int(value)
+            if not typed_value:
+                value = float(value)
+            else:
+                value = typed_value
         elif self.type == "boolean":
-            value = int(bool(value))
+            value = int(string_to_bool(value))
         elif self.type == "binary":
             pass
         elif self.type in ["json", "application/json"]:
@@ -226,13 +252,23 @@ class Result(object):
     @staticmethod
     def _get_valid_data_types():
         return [
-            "numeric", "boolean", "binary",
-            "json", "application/json", "zip", "application/zip", "floating-point",
+            "numeric",
+            "boolean",
+            "binary",
+            "json",
+            "application/json",
+            "zip",
+            "application/zip",
+            "floating-point",
             "application/pdf",
-            "text/plain", "text/csv",
-            "image/jpeg", "image/png",
-            "audio/mpeg", "audio/wav", "video/mp4",
-            "None"
+            "text/plain",
+            "text/csv",
+            "image/jpeg",
+            "image/png",
+            "audio/mpeg",
+            "audio/wav",
+            "video/mp4",
+            "None",
         ]
 
     def did_pass(self, storage_cache):
@@ -257,3 +293,36 @@ class Result(object):
             if key["source"] not in ["_config", "_constant"]:
                 public_external_data.append((key["source"], key["external_key"]))
         return public_external_data
+
+    def evaluate_conditional_operators(self):
+        if self.is_result and self.system_configs is not None:
+            try:
+                self.operator, op2, op3 = parse_result_condition(
+                    self.condition, self.system_configs
+                )
+            except KeyError as e:
+                self._report_error(
+                    "Result '{0}' missing _config data in condition: key error {1}".format(
+                        self.id, e
+                    )
+                )
+            except ValueError as e:
+                if "inrange" in self.condition:
+                    self._report_error(
+                        "Result condition not formatted correctly - "
+                        "inrange requires two arguments separated by comma - 'inrange 10, 20'. "
+                        "Found '{0}' instead. Error: {1}".format(
+                            self.condition, e
+                        )
+                    )
+                else:
+                    self._report_error(
+                        "Result condition not formatted correctly - no loop parameters given in '{0}'."
+                        "Error: {1}".format(self.condition, e)
+                    )
+            else:
+                self.operand2 = op2["value"]
+                self.operand3 = op3["value"]
+                self._external_data.append(op2)
+                self._external_data.append(op3)
+

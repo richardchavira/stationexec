@@ -5,8 +5,10 @@ import time
 import stationexec
 from stationexec.logger import log
 from stationexec.toolbox.tool import Tool
-from stationexec.utilities.exceptions import ToolUnavailableException, \
-    ToolInUseException
+from stationexec.utilities.exceptions import (
+    ToolUnavailableException,
+    ToolInUseException,
+)
 
 
 class GetTool(object):
@@ -36,17 +38,25 @@ class GetTool(object):
         # this always gets called, even if an exception occurs in the context block. it
         # will pass on the exception, unless we return True, so we don't return True.
         if self.tool_obj is not None:
-            self.toolbox.return_tool(self.tool_obj, self.process)
+            self.toolbox.return_tool(self.process, self.tool_obj)
 
         if exc_type == ToolUnavailableException:
             # Tool was offline when requested - do nothing and return
-            log.debug(1, "GetTool for '{0}' did not run - tool '{1}' was offline".format(
-                self.tool_id, self.process))
+            log.debug(
+                1,
+                "GetTool for '{0}' did not run - tool '{1}' was offline".format(
+                    self.tool_id, self.process
+                ),
+            )
             # return True
         elif exc_type == ToolInUseException:
             # Tool was in use by another process when requested - do nothing and return
-            log.debug(1, "GetTool for '{0}' did not run - tool '{1}' in use: {2}".format(
-                self.tool_id, self.process, exc_tb))
+            log.debug(
+                1,
+                "GetTool for '{0}' did not run - tool '{1}' in use: {2}".format(
+                    self.tool_id, self.process, exc_tb
+                ),
+            )
             # return True
 
         # Allow any exceptions that happened to bubble up to the user
@@ -85,16 +95,15 @@ class GetToolRetry(object):
                 attempts += 1
                 self.tool_obj = None
 
-                if attempts > self.retries:
-                    raise RuntimeError("process '{0}' unable to get checkout '{1}' "
-                                       "for over {2} seconds: {3}".format(self.process,
-                                                                          self.tool_id,
-                                                                          self.retries * self.wait_time,
-                                                                          e.message))
+                if attempts == self.retries:
+                    raise RuntimeError(
+                        f"process '{self.process}' unable to checkout '{self.tool_id}'"
+                        f" tool checkout attempted {attempts} times"
+                    )
                 time.sleep(self.wait_time)
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         # this always gets called, even if an exception occurs in the context block. it
         # will pass on the exception, unless we return True, so we don't return True.
         if self.tool_obj is not None:
-            self.toolbox.return_tool(self.tool_obj)
+            self.toolbox.return_tool(self.process, self.tool_obj)

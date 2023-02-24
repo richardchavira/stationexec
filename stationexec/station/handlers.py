@@ -18,8 +18,9 @@ class StationUIHandler(ExecutiveHandler):
     def get(self):
         display_name = self._station_info.name
         station_type = self._station_info.instance
-        self.render("station/index.html", station_name=display_name,
-                    station_type=station_type)
+        self.render(
+            "station/index.html", station_name=display_name, station_type=station_type
+        )
 
 
 class StationStatusHandler(ExecutiveHandler):
@@ -43,10 +44,9 @@ class StationHelpHandler(ExecutiveHandler):
         if os.path.exists(help_path):
             help_file_link = "/static/station/help/"
             for file in os.listdir(help_path):
-                data.append({
-                    "file": file,
-                    "link": "{0}{1}".format(help_file_link, file)
-                })
+                data.append(
+                    {"file": file, "link": "{0}{1}".format(help_file_link, file)}
+                )
         self.write(simplejson.dumps(data))
 
 
@@ -57,6 +57,18 @@ class StationCommand(ExecutiveHandler):
          Command contains the command with arguments.
         """
         cmd = self.json_args.get("arguments")
-        emit_event(InfoEvents.STATION_COMMAND, {"source": "handler.StationCommand",
-                                                "target": "station",
-                                                "cmd": cmd})
+        emit_event(
+            InfoEvents.STATION_COMMAND,
+            {"source": "handler.StationCommand", "target": "station", "cmd": cmd},
+        )
+
+
+class PlotterDataHandler(ExecutiveHandler):
+    plotter_data = None  # array of dictionaries
+
+    def initialize(self, **kwargs):
+        self.plotter_data = kwargs.get("graphs_data")
+
+    def get(self):
+        self.set_header("Content-Type", "application/json")
+        self.write(simplejson.dumps(self.plotter_data))

@@ -13,8 +13,7 @@ from stationexec.toolbox.tool import Tool
 
 version = "1.0"
 dependencies = []
-default_configurations = {
-}
+default_configurations = {}
 
 
 class Exampletool(Tool):

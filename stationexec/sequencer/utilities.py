@@ -102,6 +102,36 @@ def parse_conditional_reference(ref_string, system_configs):
     op3 = parse_data_reference("_data::operand3", operand3.lstrip(), system_configs)
     return operator, op1, op2, op3
 
+def string_to_bool(data):
+    booleans = {'FALSE': False, 'TRUE': True}
+    key = str(data).upper()
+    return booleans.get(key, None)
+    
+def string_to_int(data):
+    try:
+        integer_value = int(str(data)) # this prevents it from converting floats with a decimal component to ints
+        return integer_value
+    except (ValueError, TypeError):
+        return None
+
+def string_to_float(data):
+    try:
+        float_value = float(data)
+        return float_value
+    except (ValueError, TypeError):
+        return None
+
+def string_to_datatype(data):
+    data_as_bool = string_to_bool(data)
+    if data_as_bool is not None:
+        return data_as_bool
+    data_as_int = string_to_int(data)
+    if data_as_int is not None:
+        return data_as_int
+    data_as_float = string_to_float(data)
+    if data_as_float is not None:
+        return data_as_float
+    return data
 
 def parse_data_reference(local_key, value, system_configs):
     def _parse_ref(data_ref):
@@ -113,19 +143,9 @@ def parse_data_reference(local_key, value, system_configs):
         if len(data) == 0:
             return None
         elif len(data) == 1:
-            data = data[0]
-            if type(data) is str:
-                # Try to convert to a numeric
-                try:
-                    data = float(data)
-                except ValueError:
-                    pass
-                # Check if data is boolean
-                if data in ["false", "False", "true", "True"]:
-                    data = bool(data)
-
-                if data == "_none":
-                    data = None
+            data = string_to_datatype(data[0])
+            if data == "_none":
+                data = None
             # Data is a constant value
             return "_constant", data
         else:
@@ -143,7 +163,7 @@ def parse_data_reference(local_key, value, system_configs):
         "local_key": local_key,
         "external_key": None if source in ["_constant", "_config"] else ref_value,
         "value": _get_external_value(source, ref_value, system_configs),
-        "source": source
+        "source": source,
     }
     return ex_data
 
@@ -258,13 +278,15 @@ def _print_matrix(matrix):
 
 
 if __name__ == "__main__":
-    config = {
-        "M2000": 4
-    }
+    config = {"M2000": 4}
     print(parse_conditional_reference("8 < 6", config))
     print(parse_conditional_reference("_config::M2000 < 6", config))
     print(parse_conditional_reference("Cleaning::particles < 6", config))
-    print(parse_conditional_reference("Cleaning::particles inrange 6, _config::M2000", config))
+    print(
+        parse_conditional_reference(
+            "Cleaning::particles inrange 6, _config::M2000", config
+        )
+    )
     # print(parse_conditional_reference(None, config))
 
     print(evaluate_conditional("<", 8, 6))

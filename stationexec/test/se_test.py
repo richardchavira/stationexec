@@ -16,8 +16,10 @@ from stationexec.utilities import config, result_references
 
 class UtilitiesConfig(unittest.TestCase):
     def setUp(self):
-        json_data = b'{"http_port":8888,"db_host":"localhost","db_database":"stationexec",' \
-                    b'"db_user":"stationexec","locale":"en_US","threads":1,"debug":1}'
+        json_data = (
+            b'{"http_port":8888,"db_host":"localhost","db_database":"stationexec",'
+            b'"db_user":"stationexec","locale":"en_US","threads":1,"debug":1}'
+        )
         self.temp_file = tempfile.NamedTemporaryFile(delete=False)
         self.temp_file.write(json_data)
         self.temp_file.close()
@@ -34,30 +36,65 @@ class UtilitiesConfig(unittest.TestCase):
         self.assertEqual(config.format_name("Formatted-Name")[2], "Formatted Name")
 
     def test_format_name2(self):
-        self.assertEqual(config.format_name(" _ - * Formatted#*/--_ Name")[0], "formatted_name")
-        self.assertEqual(config.format_name(" _ - * Formatted#*/--_ Name")[1], "FormattedName")
-        self.assertEqual(config.format_name(" _ - * Formatted#*/--_ Name")[2], "Formatted Name")
+        self.assertEqual(
+            config.format_name(" _ - * Formatted#*/--_ Name")[0], "formatted_name"
+        )
+        self.assertEqual(
+            config.format_name(" _ - * Formatted#*/--_ Name")[1], "FormattedName"
+        )
+        self.assertEqual(
+            config.format_name(" _ - * Formatted#*/--_ Name")[2], "Formatted Name"
+        )
 
     def test_merge_config_data(self):
         pass
 
     def test_load_config1(self):
-        self.assertEqual(config.load_config(self.temp_file.name),
-                         {'http_port': 8888, 'db_host': 'localhost', 'db_database': 'stationexec',
-                          'db_user': 'stationexec', 'locale': 'en_US', 'threads': 1, 'debug': 1})
+        self.assertEqual(
+            config.load_config(self.temp_file.name),
+            {
+                'http_port': 8888,
+                'db_host': 'localhost',
+                'db_database': 'stationexec',
+                'db_user': 'stationexec',
+                'locale': 'en_US',
+                'threads': 1,
+                'debug': 1,
+            },
+        )
 
     def test_load_config2(self):
         # Path and File Name separate
-        self.assertEqual(config.load_config(os.path.dirname(self.temp_file.name),
-                                            os.path.split(self.temp_file.name)[1]),
-                         {'http_port': 8888, 'db_host': 'localhost', 'db_database': 'stationexec',
-                          'db_user': 'stationexec', 'locale': 'en_US', 'threads': 1, 'debug': 1})
+        self.assertEqual(
+            config.load_config(
+                os.path.dirname(self.temp_file.name),
+                os.path.split(self.temp_file.name)[1],
+            ),
+            {
+                'http_port': 8888,
+                'db_host': 'localhost',
+                'db_database': 'stationexec',
+                'db_user': 'stationexec',
+                'locale': 'en_US',
+                'threads': 1,
+                'debug': 1,
+            },
+        )
 
     def test_load_config3(self):
         # Good Test
-        self.assertEqual(config.load_config(self.temp_file.name),
-                         {'http_port': 8888, 'db_host': 'localhost', 'db_database': 'stationexec',
-                          'db_user': 'stationexec', 'locale': 'en_US', 'threads': 1, 'debug': 1})
+        self.assertEqual(
+            config.load_config(self.temp_file.name),
+            {
+                'http_port': 8888,
+                'db_host': 'localhost',
+                'db_database': 'stationexec',
+                'db_user': 'stationexec',
+                'locale': 'en_US',
+                'threads': 1,
+                'debug': 1,
+            },
+        )
 
     def test_load_config4(self):
         # Malformed JSON (trailing comma)
@@ -77,10 +114,14 @@ class UtilitiesResultReferences(unittest.TestCase):
         self.assertFalse(result_references.looks_like_result_reference(None))
 
     def test_looks_like_result_reference2(self):
-        self.assertFalse(result_references.looks_like_result_reference("non_ref_string"))
+        self.assertFalse(
+            result_references.looks_like_result_reference("non_ref_string")
+        )
 
     def test_looks_like_result_reference3(self):
-        self.assertTrue(result_references.looks_like_result_reference("OpRef:result_name"))
+        self.assertTrue(
+            result_references.looks_like_result_reference("OpRef:result_name")
+        )
 
     def test_reference_parse_parts1(self):
         self.assertRaises(ValueError, result_references.reference_parse_parts, None)
@@ -92,19 +133,31 @@ class UtilitiesResultReferences(unittest.TestCase):
         self.assertRaises(ValueError, result_references.reference_parse_parts, "ABC")
 
     def test_reference_parse_parts4(self):
-        self.assertEqual(result_references.reference_parse_parts("OpRef:result_name"),
-                         ["OpRef", "result_name"])
+        self.assertEqual(
+            result_references.reference_parse_parts("OpRef:result_name"),
+            ["OpRef", "result_name"],
+        )
 
     def test_operation_has_result1(self):
-        self.assertFalse(result_references.operation_has_result({}, "OpRef:result_name"))
+        self.assertFalse(
+            result_references.operation_has_result({}, "OpRef:result_name")
+        )
 
     def test_operation_has_result2(self):
-        self.assertFalse(result_references.operation_has_result(
-            {"OpRef": {"operation_results": [{"name": "not_result_name"}]}}, "OpRef:result_name"))
+        self.assertFalse(
+            result_references.operation_has_result(
+                {"OpRef": {"operation_results": [{"name": "not_result_name"}]}},
+                "OpRef:result_name",
+            )
+        )
 
     def test_operation_has_result3(self):
-        self.assertTrue(result_references.operation_has_result(
-            {"OpRef": {"operation_results": [{"name": "result_name"}]}}, "OpRef:result_name"))
+        self.assertTrue(
+            result_references.operation_has_result(
+                {"OpRef": {"operation_results": [{"name": "result_name"}]}},
+                "OpRef:result_name",
+            )
+        )
 
 
 if __name__ == '__main__':

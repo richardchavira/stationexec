@@ -25,8 +25,12 @@ the tool.
 import threading
 
 from stationexec.logger import log
-from stationexec.station.events import InfoEvents
-from stationexec.utilities.exceptions import ToolUnavailableException, ToolInUseException
+from stationexec.station.events import InfoEvents, emit_event
+from stationexec.utilities.error_codes import ErrorCode
+from stationexec.utilities.exceptions import (
+    ToolUnavailableException,
+    ToolInUseException,
+)
 
 
 class Tool(object):
@@ -54,10 +58,11 @@ class Tool(object):
         self._manual_status_change = False
         self.is_shutting_down = False
         self.checked_out_by = "None"
+        self.status_polling_period = kwargs.get("status_polling_period", 5.0)
 
-        self._tool_status_changed = kwargs.get("_tool_status_changed")  
-        self._register_for_event = kwargs.get("_register_for_event") 
-        self._emit_event = kwargs.get("_emit_event") 
+        self._tool_status_changed = kwargs.get("_tool_status_changed")
+        self._register_for_event = kwargs.get("_register_for_event")
+        self._emit_event = kwargs.get("_emit_event")
 
         self.is_online = False
         self.set_offline(manual=False)
@@ -126,17 +131,47 @@ class Tool(object):
         return self._emit_event(event, data)
 
     def ui_log(self, message):
-        self.emit_event(InfoEvents.MESSAGE_UPDATE, {
-            "source": "tool.{0}".format(self.tool_id),
-            "message": message
-        })
+        """
+        Write a message on the front page log and terminal
+        Retained for backward compatability
+        :param message:
+        """
+        self.log_message(message)
+
+    def log_message(self, message, kind=log.LogKind.INFO):
+        """
+        Write a message on both the front page log and terminal
+        :param message:
+        :param kind:
+        """
+        if kind == log.LogKind.ERROR:
+            emit_event(
+                InfoEvents.ALERT_UPDATE,
+                {"source": f"tool.{self.tool_id}", "message": message},
+            )
+            log.error(message)
+        elif kind == log.LogKind.WARNING:
+            emit_event(
+                InfoEvents.MESSAGE_UPDATE,
+                {"source": f"tool.{self.tool_id}", "message": message},
+            )
+            log.warning(message)
+        elif kind == log.LogKind.INFO:
+            emit_event(
+                InfoEvents.MESSAGE_UPDATE,
+                {"source": f"tool.{self.tool_id}", "message": message},
+            )
+            log.info(message)
 
     def value_to_ui(self, target, value):
-        self.emit_event(InfoEvents.OBJECT_UPDATE, {
-            "source": "tool.{0}".format(self.tool_id),
-            "target": target,
-            "value": value
-        })
+        self.emit_event(
+            InfoEvents.OBJECT_UPDATE,
+            {
+                "source": "tool.{0}".format(self.tool_id),
+                "target": target,
+                "value": value,
+            },
+        )
 
     def _get_current_status_message(self):
         if self.is_online and not self._locked():
@@ -180,14 +215,16 @@ class Tool(object):
             except threading.ThreadError:
                 # Lock was not locked - ignore - that is what we want
                 pass
-            raise ToolUnavailableException("Tool '{0}' is offline".format(
-                self.tool_id))
+            raise ToolUnavailableException("Tool '{0}' is offline".format(self.tool_id))
 
         # Check if the lock was successfully acquired
         if not got_lock:
             # Tool is already in use by another process
-            raise ToolInUseException("Tool '{0}' already in use by '{1}'".format(
-                self.tool_id, self.checked_out_by))
+            raise ToolInUseException(
+                "Tool '{0}' already in use by '{1}'".format(
+                    self.tool_id, self.checked_out_by
+                )
+            )
 
         # If we made it this far, the lock was successfully acquired!
         self.checked_out_by = process
@@ -209,9 +246,10 @@ class Tool(object):
                 pass
         elif process != self.checked_out_by:
             # Tool is in use by some other process
-            raise ToolInUseException("'{0}' attempted to return tool '{1}' which is being "
-                                     "used by '{2}'".format(process, self.tool_id,
-                                                            self.checked_out_by))
+            raise ToolInUseException(
+                "'{0}' attempted to return tool '{1}' which is being "
+                "used by '{2}'".format(process, self.tool_id, self.checked_out_by)
+            )
         else:
             # Release lock on tool
             try:
@@ -235,11 +273,11 @@ class Tool(object):
             "tool_type": self.tool_type,
             "name": self.name,
             "tool_id": self.tool_id,
-
             "online_bool": self.is_online,
             "details": self._get_current_status_message(),
             "inuse": self._locked(),
-            "version": self.version
+            "version": self.version,
+            "dev": self.dev
         }
 
         if self._status != status:
@@ -248,3 +286,13 @@ class Tool(object):
         # Ask toolbox to update all status
         if self._tool_status_changed is not None:
             self._tool_status_changed()
+
+    def store_error_code(self, error_code: ErrorCode):
+        emit_event(
+            InfoEvents.PASS_ERROR_CODE, 
+            {
+                "source": self.checked_out_by,
+                "error_code": error_code.get_dict()
+            }
+        )
+        log.warning(error_code.__str__())

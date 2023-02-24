@@ -1,0 +1,34 @@
+<div>
+    <h1>Mongo</h1>
+    <table/>
+        <tr>
+            <td> <label for="{{tool_id}}_db_status">Status:</label> </td>
+            <td> <input readonly id="{{tool_id}}_db_status" /> </td>
+        </tr>
+        <tr>
+            <td> <label for="{{tool_id}}_db_hostname">REST API Hostname:</label> </td>
+            <td> <input readonly id="{{tool_id}}_db_hostname" /> </td>
+        </tr>
+        <tr>
+            <td> <label for="{{tool_id}}_db_name">Database Name:</label> </td>
+            <td> <input readonly id="{{tool_id}}_db_name" /> </td>
+        </tr>
+    </table>
+</div>
+
+<script>
+
+    function update() {
+        // Trigger the tool to update the UI variables
+        const url = "/tool/{{tool_id}}/update"
+        fetch(url)
+            .catch(error => console.error(error))
+    }
+
+    // This HTML is loaded within React and does not trigger the standard onload events.
+    // When React loads this page the script is stripped out and then added to the page
+    // header which causes this script to execute before the HTML/DOM is loaded.
+    // Use setTimeout to ensure the DOM is loaded prior to script execution
+    setTimeout(update, 0)
+
+</script>

@@ -19,8 +19,13 @@ def generate_tool():
     """
     parser = argparse.ArgumentParser(description='Tool Generator')
     parser.add_argument("name", help="name of the tool")
-    parser.add_argument("-t", "--type", help="(optional) type of generated tool. Choice of: async",
-                        required=False, default=None)
+    parser.add_argument(
+        "-t",
+        "--type",
+        help="(optional) type of generated tool. Choice of: async",
+        required=False,
+        default=None,
+    )
     args, _ = parser.parse_known_args(sys.argv)
 
     given_name = args.name
@@ -35,8 +40,9 @@ def generate_tool():
     else:
         main_file = "tool_template.py"
 
-    template_path = os.path.join(get_all_paths()["module_root"],
-                                 "cli", "templates", "tool_template")
+    template_path = os.path.join(
+        get_all_paths()["module_root"], "cli", "templates", "tool_template"
+    )
     item_path = os.path.join(get_all_paths()["app_root"], "tools", name)
 
     # Create directory for the item itself inside the specified parent folder
@@ -76,8 +82,9 @@ def generate_station():
     given_name = args.name
     name, class_name, display_name = format_name(given_name)
 
-    template_path = os.path.join(get_all_paths()["module_root"],
-                                 "cli", "templates", "station_template")
+    template_path = os.path.join(
+        get_all_paths()["module_root"], "cli", "templates", "station_template"
+    )
     item_path = os.path.join(get_all_paths()["app_root"], "stations", name)
 
     # Create directory for the item itself inside the specified parent folder

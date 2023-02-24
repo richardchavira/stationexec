@@ -6,6 +6,10 @@
 //  UI.ACTIVE_LINK
 //
 
+const EVENTS = {
+    ALERT: 'InfoEvents.ALERT_UPDATE'
+}
+
 var event_subscribers = {};
 
 function event_emit(type, data) {
@@ -55,6 +59,7 @@ icons = {
     "exclaim": {path: "M10 3h4v12h-4z M10 17h4v4h-4z"},
     "question": {path: "M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"},
     "caret": {path: "M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"},
+    "dashboard": {path: "M2 0h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm12 0h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2zm0 12h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2zM2 12h4a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2z"},
 };
 
 render() {
@@ -158,19 +163,41 @@ render() {
 // ********************************************************************************
 
 class MessageView extends React.Component {
-constructor(props) {
-    super(props);
-    this.id = random_id(this.constructor.name)
-}
+    constructor(props) {
+        super(props);
+        this.id = random_id(this.constructor.name)
+    }
 
-render() {
-    // TODO Scroll to bottom after appending a message (can we only do that if the user isn't
-    //  currently scrolling? Or have a check to disable scroll to bottom?
-    //  Explore filter option so that only station/tool specific data shown on proper page
-    return(
-        <div>
-            <textarea id={this.id + "-message"} className="message-view-control" rows="15"
-                        readOnly value={this.props.messages.join("\n")}/>
-        </div>
-    )}
+    renderMessages() {
+        return this.props.messageData.map((message, index) => {
+            let style = {};
+            if (message.event === EVENTS.ALERT) {
+                style.color = 'red'
+            }
+            if (index >= 1) {
+                if (this.props.messageData[index].source != this.props.messageData[index - 1].source) {
+                    style.marginTop = 20
+                }
+            }
+
+            return (
+                <p
+                    className='message-view-text'
+                    style={style}>
+                    {`${message.source} : ${message.message}`}
+                </p>
+            )
+        })
+    }
+
+    render() {
+        // TODO Scroll to bottom after appending a message (can we only do that if the user isn't
+        //  currently scrolling? Or have a check to disable scroll to bottom?
+        //  Explore filter option so that only station/tool specific data shown on proper page
+        return(
+            <div className="message-view-control">
+                {this.props.messageData ? this.renderMessages() : null}
+            </div>
+        )
+    }
 }

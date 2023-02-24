@@ -3,12 +3,18 @@
 # @lint-ignore-every PYTHON3COMPATIMPORTS1
 
 from stationexec.logger import log
-from stationexec.sequencer.utilities import evaluate_conditional, parse_conditional_reference, parse_data_reference
+from stationexec.sequencer.utilities import (
+    evaluate_conditional,
+    parse_conditional_reference,
+    parse_data_reference,
+)
 from stationexec.utilities.uuidstr import get_uuid
 
 
 class Loop(object):
-    def __init__(self, loop, report_error, system_configs, n_up=1, n_up_operations=None):
+    def __init__(
+        self, loop, report_error, system_configs, n_up=1, n_up_operations=None
+    ):
         self._report_error = report_error
         if "operations" not in loop:
             raise Exception("Loop defined with no operations")
@@ -40,7 +46,9 @@ class Loop(object):
         try:
             self.type, ref_string = loop["loop"].split(" ", 1)
         except ValueError:
-            self._report_error("Loop condition not formed correctly: {0}".format(loop["loop"]))
+            self._report_error(
+                "Loop condition not formed correctly: {0}".format(loop["loop"])
+            )
             return
 
         if self.type == "repeat":
@@ -48,17 +56,24 @@ class Loop(object):
                 ref = parse_data_reference("condition", ref_string, system_configs)
             except KeyError as e:
                 self._report_error(
-                    "'repeat' loop missing _config data in reference '{0}': key error {1}".format(ref_string, e))
+                    "'repeat' loop missing _config data in reference '{0}': key error {1}".format(
+                        ref_string, e
+                    )
+                )
             else:
                 self.condition = ref["value"]
                 self._external_data.append(ref)
         elif self.type in ["while", "dowhile"]:
             try:
                 self.condition, op1, op2, op3 = parse_conditional_reference(
-                    ref_string, system_configs)
+                    ref_string, system_configs
+                )
             except KeyError as e:
                 self._report_error(
-                    "'{2}' loop missing _config data in reference '{0}': key error {1}".format(ref_string, e, self.type))
+                    "'{2}' loop missing _config data in reference '{0}': key error {1}".format(
+                        ref_string, e, self.type
+                    )
+                )
             else:
                 self.operand1 = op1["value"]
                 self.operand2 = op2["value"]
@@ -84,8 +99,10 @@ class Loop(object):
                     # One of the operands comes from an n_up operation, but since there are
                     # multiple of those, this is not allowed as it is not specified which of the
                     # multiple to make the decision on
-                    self._report_error("Loop referencing data in an n_up operation - unclear "
-                                       "which value to choose")
+                    self._report_error(
+                        "Loop referencing data in an n_up operation - unclear "
+                        "which value to choose"
+                    )
         else:
             # Not in n_up mode - Clean up operation references in case there is reference to a
             # specific n_up operation name
@@ -93,8 +110,11 @@ class Loop(object):
                 if key["source"] not in ["_config", "_constant"]:
                     key["source"] = key["source"].split("__")[0]
 
-        self.dependencies = [key["source"] for key in self._external_data
-                             if key["source"] not in ["_config", "_constant"]]
+        self.dependencies = [
+            key["source"]
+            for key in self._external_data
+            if key["source"] not in ["_config", "_constant"]
+        ]
 
     def _status_string(self):
         message = ""
@@ -107,16 +127,20 @@ class Loop(object):
             if self.operand1 is None or self.operand2 is None:
                 message = "while"
             else:
-                message = "while {0} {1} {2}".format(self.operand1, self.condition, self.operand2)
+                message = "while {0} {1} {2}".format(
+                    self.operand1, self.condition, self.operand2
+                )
         elif self.type == "dowhile":
             if self.operand1 is None or self.operand2 is None:
                 message = "do while"
             else:
-                message = "do while {0} {1} {2}".format(self.operand1, self.condition,
-                                                        self.operand2)
+                message = "do while {0} {1} {2}".format(
+                    self.operand1, self.condition, self.operand2
+                )
 
-        return "<Loop status='{0}' type='{1}' members='{2}'>".format(message, self.type,
-                                                                     ",".join(self._operations))
+        return "<Loop status='{0}' type='{1}' members='{2}'>".format(
+            message, self.type, ",".join(self._operations)
+        )
 
     def __str__(self):
         return self._status_string()
@@ -132,7 +156,7 @@ class Loop(object):
             "operand2": self.operand2,
             "members": self.get_operations(),
             "entrynodes": self.entry_nodes,
-            "exitnodes": self.exit_nodes
+            "exitnodes": self.exit_nodes,
         }
 
     def is_loop_start(self, op_start_list, storage_cache):
@@ -198,17 +222,23 @@ class Loop(object):
         elif self.type == "while" or (self.type == "dowhile" and when == "end"):
             conditionals_valid = True
             # Ensure that the conditional values are valid for comparison - int, float, bool
-            for op, op_name in zip([self.operand1, self.operand2, self.operand3],
-                                   ["operand1", "operand2", "operand3"]):
+            for op, op_name in zip(
+                [self.operand1, self.operand2, self.operand3],
+                ["operand1", "operand2", "operand3"],
+            ):
                 if op is None:
                     continue
                 if type(op) not in [int, float, bool]:
                     conditionals_valid = False
-                    log.error("Unsupported operand type in conditional operation: '{0}' '{1}'"
-                              .format(op_name, type(op)))
+                    log.error(
+                        "Unsupported operand type in conditional operation: '{0}' '{1}'".format(
+                            op_name, type(op)
+                        )
+                    )
             if conditionals_valid:
-                evaluation = evaluate_conditional(self.condition, self.operand1, self.operand2,
-                                                  self.operand3)
+                evaluation = evaluate_conditional(
+                    self.condition, self.operand1, self.operand2, self.operand3
+                )
             else:
                 evaluation = False
 

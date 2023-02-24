@@ -10,10 +10,22 @@ from uuid import UUID
 from stationexec.sequencer.loop import Loop
 from stationexec.sequencer.opdata import OpData
 from stationexec.sequencer.operationstates import OperationState
-from stationexec.sequencer.utilities import flatten_2d_list, find_graph_entry_exit, graph_to_path_matrix, \
-    named_method_on_list, reduce_graph, SequenceLoop, unique_list
+from stationexec.sequencer.utilities import (
+    flatten_2d_list,
+    find_graph_entry_exit,
+    graph_to_path_matrix,
+    named_method_on_list,
+    reduce_graph,
+    SequenceLoop,
+    unique_list,
+)
+from stationexec.utilities.error_codes import ErrorCode
 from stationexec.utilities.uuidstr import get_uuid
-
+from stationexec.utilities.exceptions import MissingResult
+from stationexec.utilities.library_info import get_installed_library_versions
+from stationexec.logger import log
+from stationexec.logger.logger import Logger
+from stationexec.station.events import emit_event, InfoEvents
 
 class SequenceStatus(Enum):
     IDLE = 0
@@ -23,8 +35,15 @@ class SequenceStatus(Enum):
 
 
 class Sequence(object):
-    def __init__(self, op_config_data, tool_checkout, system_configs, n_up=1,
-                 avg_operation_runtimes=None, runtimedata=None):
+    def __init__(
+        self,
+        op_config_data,
+        tool_checkout,
+        system_configs,
+        n_up=1,
+        avg_operation_runtimes=None,
+        runtimedata=None,
+    ):
         self.uuid = get_uuid()  # type: UUID
         self.is_initialized = False
         self.version = "0.0"
@@ -32,7 +51,9 @@ class Sequence(object):
         self._tool_checkout_methods = tool_checkout
         self._system_configs = system_configs
         self._runtimedata = runtimedata
-        self.avg_runtimes = avg_operation_runtimes if avg_operation_runtimes is not None else {}
+        self.avg_runtimes = (
+            avg_operation_runtimes if avg_operation_runtimes is not None else {}
+        )
         self._n_up = n_up if n_up >= 1 else 1
         self._operations_matrix = None
         self._running_status = SequenceStatus.IDLE
@@ -41,6 +62,7 @@ class Sequence(object):
         self._error_reports = []
         self._entry_nodes = []
         self._exit_nodes = []
+        self._libraries = get_installed_library_versions()
         self._operations = {}
         self._loops = {}
         self._storage_cache = defaultdict(dict)
@@ -66,8 +88,11 @@ class Sequence(object):
         # Potentially have some tags for the different errors and be able to highlight
         # visually in the file where the issues are found (using something like codemirror)
         if len(self._error_reports) > 0:
-            raise Exception("\nIssue(s) found in sequence setup:\n - {0}\n"
-                            .format("\n - ".join(self._error_reports)))
+            raise Exception(
+                "\nIssue(s) found in sequence setup:\n - {0}\n".format(
+                    "\n - ".join(self._error_reports)
+                )
+            )
 
     def __str__(self):
         return "<Sequence id='{0}'>".format(self.uuid)
@@ -104,14 +129,21 @@ class Sequence(object):
         self._adjust_dependencies()
 
         # Verify dependency operations exist
-        operation_dependencies = flatten_2d_list(self._for_all_operations("get_dependency_list"))
+        operation_dependencies = flatten_2d_list(
+            self._for_all_operations("get_dependency_list")
+        )
         loop_dependencies = flatten_2d_list(self._for_all_loops("get_dependency_list"))
         all_dependencies = unique_list(operation_dependencies + loop_dependencies)
         active_operations = self.get_operation_names()
-        missing_operations = [op for op in all_dependencies if op not in active_operations]
+        missing_operations = [
+            op for op in all_dependencies if op not in active_operations
+        ]
         if len(missing_operations) != 0:
-            self._report_error("Missing operations marked as dependencies in sequence: {0}".format(
-                ", ".join(missing_operations)))
+            self._report_error(
+                "Missing operations marked as dependencies in sequence: {0}".format(
+                    ", ".join(missing_operations)
+                )
+            )
 
         # Create the data store/cache to track results from operations that items in the loop
         # depend on
@@ -122,23 +154,32 @@ class Sequence(object):
 
         # Check for ops that require data from conditional ops or loops - warn
         external_dependencies = [d[0] for d in cache_data]
-        conditional_deps = [op for op, obj in self._operations.items() if
-                            obj.is_conditional and op in external_dependencies]
+        conditional_deps = [
+            op
+            for op, obj in self._operations.items()
+            if obj.is_conditional and op in external_dependencies
+        ]
         if len(conditional_deps) != 0:
             self._report_error(
                 "Items in sequence depend on the following conditional operation(s) "
-                "for data: {0}".format(", ".join(conditional_deps)))
+                "for data: {0}".format(", ".join(conditional_deps))
+            )
 
         # Check if dependencies store all of the required values
         missing_results = []
-        stored_results = {key: value.get_result_names() for key, value in self._operations.items()}
+        stored_results = {
+            key: value.get_result_names() for key, value in self._operations.items()
+        }
         for op, results in stored_results.items():
             for result in self._storage_cache[op]:
                 if result not in results:
                     missing_results.append(str((op, result)))
         if len(missing_results) != 0:
-            self._report_error("Missing required result(s) in operations: {0}"
-                               .format(", ".join(missing_results)))
+            self._report_error(
+                "Missing required result(s) in operations: {0}".format(
+                    ", ".join(missing_results)
+                )
+            )
 
         if len(self._error_reports) > 0:
             return
@@ -149,14 +190,24 @@ class Sequence(object):
         """ """
 
         def _store_op(n_pos=0):
-            op = OpData(op_info, self._system_configs, self._tool_checkout_methods,
-                        self._report_error, self._runtimedata, n_pos=n_pos, n_up=self._n_up,
-                        n_up_operations=n_up_operations)
+            op = OpData(
+                op_info,
+                self._system_configs,
+                self._tool_checkout_methods,
+                self._report_error,
+                self._runtimedata,
+                n_pos=n_pos,
+                n_up=self._n_up,
+                n_up_operations=n_up_operations,
+            )
             # Update the operations map
             if op.id in self._operations:
                 # Check for duplicates
-                self._report_error("Duplicate operation defined: '{0}'"
-                                   .format(self._operations[-1].operation_id))
+                self._report_error(
+                    "Duplicate operation defined: '{0}'".format(
+                        self._operations[-1].operation_id
+                    )
+                )
             self._operations[op.id] = op
 
         # Create operation object
@@ -206,8 +257,11 @@ class Sequence(object):
         # other internal loop nodes
         for _id, loop_data in self._loops.items():
             loop_operations = loop_data.get_operations()
-            ops = {key: list(value.dependencies) for key, value in self._operations.items() if
-                   key in loop_operations}
+            ops = {
+                key: list(value.dependencies)
+                for key, value in self._operations.items()
+                if key in loop_operations
+            }
 
             def internal_only(_deps):
                 return [dep for dep in _deps if dep in loop_operations]
@@ -236,7 +290,9 @@ class Sequence(object):
                 clean_internal[op] = all_external
 
             # Exit nodes are nodes that no other internal nodes depend on
-            loop_data.exit_nodes = [op for op in loop_operations if op not in all_internal]
+            loop_data.exit_nodes = [
+                op for op in loop_operations if op not in all_internal
+            ]
             if len(loop_data.exit_nodes) == 0:
                 self._report_error("Unable to find any exit nodes for loop")
 
@@ -265,7 +321,9 @@ class Sequence(object):
                     self._operations[op].dependencies = list(deps)
 
         # Optimize operation dependencies to minimize duplicate paths
-        ops = {key: value.get_dependency_list() for key, value in self._operations.items()}
+        ops = {
+            key: value.get_dependency_list() for key, value in self._operations.items()
+        }
         try:
             matrix = graph_to_path_matrix(ops)
             new_ops = reduce_graph(ops, matrix)
@@ -328,12 +386,13 @@ class Sequence(object):
             "passing": self.did_pass(),
             "runcode": self._running_status.name,
             "loops": self._for_all_loops("get_status"),
+            "library_versions": self._libraries,
             "operations": self._for_all_operations("get_status"),
             "runtimedata": self.get_runtime_data(),
             "version": self.version,
             "entrynodes": self._entry_nodes,
             "exitnodes": self._exit_nodes,
-            "info": {}
+            "info": {},
         }
         if self._exit_reason != "":
             status["info"]["exit_reason"] = self._exit_reason
@@ -366,7 +425,9 @@ class Sequence(object):
         """ Request shutdown of operations in list and return list of terminated operations """
         self._running_status = SequenceStatus.ABORTED
         self._for_operations_by_name(operations, "shutdown", nice)
-        still_alive = zip(operations, self._for_operations_by_name(operations, "process_is_alive"))
+        still_alive = zip(
+            operations, self._for_operations_by_name(operations, "process_is_alive")
+        )
         return [op for op, alive in still_alive if not alive]
 
     def abort_if_not_complete_or_error(self, operations):
@@ -374,7 +435,10 @@ class Sequence(object):
         for op in operations:
             self._running_status = SequenceStatus.ABORTED
             status = self.get_op_run_status(op)
-            if status is not OperationState.COMPLETED and status is not OperationState.ERROR:
+            if (
+                status is not OperationState.COMPLETED
+                and status is not OperationState.ERROR
+            ):
                 self._operations[op].set_run_status(OperationState.ABORTED)
 
     def get_required_tools(self):
@@ -390,9 +454,11 @@ class Sequence(object):
 
     def sort_list_by_priority(self, operation_list):
         """ Sort the incoming list of operations by priority - greatest to smallest """
-        return sorted(list(operation_list),
-                      reverse=True,
-                      key=lambda x: self._operations[x].get_priority())
+        return sorted(
+            list(operation_list),
+            reverse=True,
+            key=lambda x: self._operations[x].get_priority(),
+        )
 
     def _for_all_operations(self, method, *args):
         """
@@ -402,8 +468,9 @@ class Sequence(object):
 
     def _for_operations_by_name(self, operations, method, *args):
         """ Perform a named method on named operations with list of args and return result list """
-        operation_objects = [self._operations[opid] for opid in self._operations
-                             if opid in operations]
+        operation_objects = [
+            self._operations[opid] for opid in self._operations if opid in operations
+        ]
         return named_method_on_list(operation_objects, method, *args)
 
     # ---------- Individual Operations -----------
@@ -416,7 +483,7 @@ class Sequence(object):
         status = self._operations[operation_id].get_status()
         status["sequence"] = self.uuid
         return status
-
+        
     def get_op_result_data(self, operation_id):
         # Evaluate all pass/fail results in operation
         self._operations[operation_id].update_external_data(self._storage_cache)
@@ -438,8 +505,22 @@ class Sequence(object):
         return self._operations[operation_id].launch()
 
     def cleanup_op(self, operation_id):
-        self._operations[operation_id].cleanup()
-        self._update_storage_cache(operation_id, self._operations[operation_id].get_result_values())
+        try:
+            self._operations[operation_id].cleanup()
+        except MissingResult as e:
+            log.warning(
+                "Operation '{0}' completed without saving required results: '{1}'".format(operation_id, ", ".join(e.field))
+            )
+            emit_event(
+                InfoEvents.MESSAGE_UPDATE,
+                {
+                    "source": "sequence",
+                    "message": "Operation '{0}' completed without saving required results: '{1}'".format(operation_id, ", ".join(e.field))
+                }
+            )
+        self._update_storage_cache(
+            operation_id, self._operations[operation_id].get_result_values()
+        )
 
     def get_op_run_status(self, operation_id):
         return self._operations[operation_id].get_run_status()
@@ -457,6 +538,9 @@ class Sequence(object):
 
     def set_operation_status(self, operation_id, status):
         return self._operations[operation_id].set_run_status(status)
+
+    def store_op_error_code(self, operation_id, error_code: ErrorCode):
+        self._operations[operation_id].store_error_code(error_code)
 
     def has_requeue_time_elapsed(self, operation_id, min_requeue_time):
         """ Check if the operation requeue time is greater than the minimum """
@@ -496,13 +580,16 @@ class Sequence(object):
         """
         Evaluate loops and return list of all operations in ready list to be moved to done list
         """
-        ops = flatten_2d_list(self._for_all_loops("is_loop_start", ready_list, self._storage_cache))
+        ops = flatten_2d_list(
+            self._for_all_loops("is_loop_start", ready_list, self._storage_cache)
+        )
 
         # Increment loop iteration counter so all operations can know which iteration
         # of the loop they are running on
         for loop in self._loops.values():
-            self._for_operations_by_name(loop.get_operations(), "set_loop_iteration",
-                                         loop.evaluations)
+            self._for_operations_by_name(
+                loop.get_operations(), "set_loop_iteration", loop.evaluations
+            )
 
         return ops
 
@@ -511,7 +598,9 @@ class Sequence(object):
         Evaluate loops and return list of all operations in done list to be moved back to
         waiting list
         """
-        ops = flatten_2d_list(self._for_all_loops("is_loop_end", done_list, self._storage_cache))
+        ops = flatten_2d_list(
+            self._for_all_loops("is_loop_end", done_list, self._storage_cache)
+        )
 
         # Refresh operations before they are run again in loop
         self._operation_refresh(ops)
@@ -519,7 +608,8 @@ class Sequence(object):
         # Increment loop iteration counter so all operations can know which iteration
         # of the loop they are running on
         for loop in self._loops.values():
-            self._for_operations_by_name(loop.get_operations(), "set_loop_iteration",
-                                         loop.evaluations)
+            self._for_operations_by_name(
+                loop.get_operations(), "set_loop_iteration", loop.evaluations
+            )
 
         return ops

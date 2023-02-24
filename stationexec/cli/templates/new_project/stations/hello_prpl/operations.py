@@ -63,8 +63,9 @@ class Eight(Operation):
 class Nine(Operation):
     def operation_action(self):
         time.sleep(1)
-        self.ui_log("{0}: loop iteration {1}".format(self.get_id(),
-                                                     self.get_loop_iteration()))
+        self.ui_log(
+            "{0}: loop iteration {1}".format(self.get_id(), self.get_loop_iteration())
+        )
         if self.get_loop_iteration() > 1:
             self.save_result("index", 9)
         else:

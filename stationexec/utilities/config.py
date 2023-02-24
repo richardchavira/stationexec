@@ -51,7 +51,9 @@ def get_system_config():
     if _system_config_data is None:
         _root, _log, config_path, _data = get_default_paths()
         try:
-            _system_config_data = load_config(os.path.join(config_path, _SYSTEM_CONFIG_FILE_NAME))
+            _system_config_data = load_config(
+                os.path.join(config_path, _SYSTEM_CONFIG_FILE_NAME)
+            )
         except Exception as e:
             # Unable to load system configuration file - try again later
             log.exception("Cannot load system configuration file", e)
@@ -79,32 +81,53 @@ def get_all_paths():
         config_paths["app_root"] = default_app_root
         config_paths["log_folder"] = log_folder
         config_paths["config_folder"] = config_folder
-        config_paths["config_file"] = os.path.join(config_folder, _SYSTEM_CONFIG_FILE_NAME)
+        config_paths["config_file"] = os.path.join(
+            config_folder, _SYSTEM_CONFIG_FILE_NAME
+        )
         config_paths["data_folder"] = data_folder
         # Application Root
         try:
             os.chdir(config_paths["app_root"])
         except Exception as e:
-            raise RootDoesNotExist("Missing root folder '{0}' - run 'se-setup' to fix: {1}".format(
-                config_paths["app_root"], str(e)))
+            raise RootDoesNotExist(
+                "Missing root folder '{0}' - run 'se-setup' to fix: {1}".format(
+                    config_paths["app_root"], str(e)
+                )
+            )
         # Station
         if _station_identity == _DEFAULT_STATION_IDENTITY:
             # Station identity has not been set - recalculate paths next time in case it is set
             _cache_data = False
         config_paths["stations"] = os.path.join(config_paths["app_root"], "stations")
-        config_paths["station"] = os.path.join(config_paths["stations"], _station_identity)
-        config_paths["tool_manifest"] = os.path.join(config_paths["station"], "tool_manifest.json")
-        config_paths["station_file"] = os.path.join(config_paths["station"], "station.py")
-        config_paths["operation_defs"] = os.path.join(config_paths["station"], "operations.py")
-        config_paths["operation_config"] = os.path.join(config_paths["station"], "operations.json")
+        config_paths["station"] = os.path.join(
+            config_paths["stations"], _station_identity
+        )
+        config_paths["tool_manifest"] = os.path.join(
+            config_paths["station"], "tool_manifest.json"
+        )
+        config_paths["station_file"] = os.path.join(
+            config_paths["station"], "station.py"
+        )
+        config_paths["operation_defs"] = os.path.join(
+            config_paths["station"], "operations.py"
+        )
+        config_paths["operation_config"] = os.path.join(
+            config_paths["station"], "operations.json"
+        )
         # Tools
         config_paths["tools_internal"] = os.path.join(module_root, "built_in")
+        # if os.path.exists(os.path.join(config_paths["station"], "tools")):
+        config_paths["tools_station_internal"] = os.path.join(config_paths["station"], "tools")
         config_paths["tools_external"] = os.path.join(config_paths["app_root"], "tools")
         # UI
         config_paths["ui_folder"] = os.path.join(module_root, "ui")
         config_paths["default_ui_folder"] = os.path.join(module_root, "ui")
+
         if os.path.exists(os.path.join(config_paths["station"], "config.json")):
-            station_config = load_config(os.path.join(config_paths["station"], "config.json"))
+            config_paths['station_config'] = os.path.join(
+                config_paths["station"], "config.json"
+            )
+            station_config = load_config(config_paths['station_config'])
             if "ui_replacement" in station_config:
                 config_paths["ui_folder"] = station_config["ui_replacement"]
 
@@ -127,8 +150,10 @@ def verify_paths_exist():
         if not exists(real_path):
             does_not_exist.append(real_path)
     if len(does_not_exist) > 0:
-        raise Exception("Missing required stationexec items - please run 'se-setup' to fix"
-                        " to repair. \nMissing: \n- {0}".format("\n- ".join(does_not_exist)))
+        raise Exception(
+            "Missing required stationexec items - please run 'se-setup' to fix"
+            " to repair. \nMissing: \n- {0}".format("\n- ".join(does_not_exist))
+        )
 
 
 def get_default_paths():
@@ -210,10 +235,7 @@ def merge_config_data(input_arguments):
     if cert is None or key is None:
         se_config_data["https_data"] = None
     else:
-        se_config_data["https_data"] = {
-            "certfile": cert,
-            "keyfile": key
-        }
+        se_config_data["https_data"] = {"certfile": cert, "keyfile": key}
 
     # Stare database cert data separately
     db_data = {
@@ -309,7 +331,9 @@ def get_modules_in_directory(directory):
     #  are added above in get_all_paths
     modules_found = []
     path = os.path.abspath(directory)
-    all_folders = [folder for folder in list_dir(path) if is_dir(os.path.join(path, folder))]
+    all_folders = [
+        folder for folder in list_dir(path) if is_dir(os.path.join(path, folder))
+    ]
     for folder in all_folders:
         try:
             mod = util.find_spec(folder)
@@ -320,7 +344,9 @@ def get_modules_in_directory(directory):
             # Found a folder that is not a module
             pass
         except Exception as e:
-            print("Exception while processing package '{0}': {1}".format(folder, str(e)))
+            print(
+                "Exception while processing package '{0}': {1}".format(folder, str(e))
+            )
     return modules_found
 
 
@@ -339,7 +365,9 @@ def get_reqs(reqs):
         try:
             package = pkg_resources.working_set.by_key[target.lower()]
         except KeyError:
-            raise Exception("Cannot find dependency - must be installed first: '{0}'".format(target))
+            raise Exception(
+                "Cannot find dependency - must be installed first: '{0}'".format(target)
+            )
         else:
             name_list = [package.project_name]
             if os.path.exists(os.path.join(package.egg_info, "top_level.txt")):
@@ -358,9 +386,19 @@ def get_reqs(reqs):
                 except KeyError:
                     pkg_version = None
                 if os.path.exists(os.path.join(package.location, name)):
-                    paths_to_save[name] = (name, os.path.join(package.location, name), pkg_version)
-                elif os.path.exists(os.path.join(package.location, "{0}.py".format(name))):
-                    paths_to_save[name] = (None, os.path.join(package.location, "{0}.py".format(name)), pkg_version)
+                    paths_to_save[name] = (
+                        name,
+                        os.path.join(package.location, name),
+                        pkg_version,
+                    )
+                elif os.path.exists(
+                    os.path.join(package.location, "{0}.py".format(name))
+                ):
+                    paths_to_save[name] = (
+                        None,
+                        os.path.join(package.location, "{0}.py".format(name)),
+                        pkg_version,
+                    )
             for pkg in package.requires():
                 get_req(pkg.name)
 

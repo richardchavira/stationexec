@@ -15,6 +15,7 @@ from tornado.web import HTTPError, RequestHandler, StaticFileHandler
 
 class ExecutiveHandler(RequestHandler):
     """Adds additional functionality to RequestHandler."""
+
     json_args = None  # type: dict
 
     def prepare(self):
@@ -22,8 +23,9 @@ class ExecutiveHandler(RequestHandler):
         Automatically decode any JSON arguments send to the endpoint, into a variable named
         json_args.
         """
-        if ("Content-Type" in self.request.headers and
-                self.request.headers["Content-Type"].startswith("application/json")):
+        if "Content-Type" in self.request.headers and self.request.headers[
+            "Content-Type"
+        ].startswith("application/json"):
             self.json_args = simplejson.loads(self.request.body)
         else:
             self.json_args = {}
@@ -61,7 +63,9 @@ class ExecutiveUI(ExecutiveHandler):
         websocket = "{0}/socket".format(port)
         websockettype = "ws" if ssl is None else "wss"
 
-        self.render("ui/html/index.html", websocket=websocket, websockettype=websockettype)
+        self.render(
+            "ui/html/index.html", websocket=websocket, websockettype=websockettype
+        )
 
 
 class ExecutiveStaticFileHandler(StaticFileHandler):
@@ -76,6 +80,7 @@ class ExecutiveStaticFileHandler(StaticFileHandler):
 
     URLs of the form /static/tool/<toolname>/filename map tp the tool/<toolname>/ui folder
     """
+
     module_path = None  # type: str
     internal_tool_path = None  # type: str
     tool_path = None  # type: str
@@ -106,7 +111,9 @@ class ExecutiveStaticFileHandler(StaticFileHandler):
     def set_extra_headers(self, path):
         # Disable static file caching
         if self.debug > -1:
-            self.set_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.set_header(
+                "Cache-Control", "no-store, no-cache, must-revalidate, max-age=0"
+            )
 
     @classmethod
     def get_content(cls, abspath, start=None, end=None):

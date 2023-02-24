@@ -52,8 +52,11 @@ def sig_handler(self, signum, frame):
     """ catch a signal and shut down the station exec and all threads """
     print("\n")  # if in terminal, move to next line to avoid keypress output
 
-    signals_to_name_dict = {getattr(signal, n): n for n in dir(signal) if
-                            n.startswith('SIG') and '_' not in n}
+    signals_to_name_dict = {
+        getattr(signal, n): n
+        for n in dir(signal)
+        if n.startswith('SIG') and '_' not in n
+    }
 
     # prevent duplicate signals
     for sig_id in signal_list():
@@ -62,7 +65,10 @@ def sig_handler(self, signum, frame):
     log.warning(
         "Caught signal on pid {1} '{2}': {0}".format(
             signals_to_name_dict.get(signum, "Unnamed signal: %d" % signum),
-            os.getpid(), process_name().rstrip('\0')))
+            os.getpid(),
+            process_name().rstrip('\0'),
+        )
+    )
 
     io_loop = IoLoop().current()
 
@@ -70,7 +76,10 @@ def sig_handler(self, signum, frame):
     if self.web_server is not None:
         io_loop.add_callback_from_signal(self.web_server.stop)
     log.info(
-        "      Will shutdown within {0} seconds ...".format(MAX_WAIT_SECONDS_TILL_SHUTDOWN))
+        "      Will shutdown within {0} seconds ...".format(
+            MAX_WAIT_SECONDS_TILL_SHUTDOWN
+        )
+    )
     io_loop.call_later(MAX_WAIT_SECONDS_TILL_SHUTDOWN, stop_loop)
 
     emit_event_non_blocking(ActionEvents.SHUTDOWN)

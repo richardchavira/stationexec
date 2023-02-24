@@ -17,11 +17,20 @@ import webbrowser
 
 from stationexec.logger import log
 from stationexec.logger.logger import Logger
-from stationexec.station.events import emit_event, register_for_event, InfoEvents, ActionEvents
+from stationexec.station.events import (
+    emit_event,
+    register_for_event,
+    InfoEvents,
+    ActionEvents,
+)
 from stationexec.toolbox.toolbox import verify_status_loop
 from stationexec.utilities.ioloop_ref import IoLoop
 from stationexec.utilities.uuidstr import get_uuid
-from stationexec.web.handlers import ExecutiveHandler, ExecutiveTemplateLoader, ExecutiveStaticFileHandler
+from stationexec.web.handlers import (
+    ExecutiveHandler,
+    ExecutiveTemplateLoader,
+    ExecutiveStaticFileHandler,
+)
 from stationexec.web.websocket import SocketManager, StationSocket
 from tornado import web
 
@@ -62,6 +71,7 @@ class ToolLaunch(object):
         # Enable using tornado/asyncio main loop in multiple threads
         if sys.version_info >= (3, 5):
             from tornado.platform.asyncio import AnyThreadEventLoopPolicy
+
             asyncio.set_event_loop_policy(AnyThreadEventLoopPolicy())
 
         IoLoop().init()
@@ -102,7 +112,9 @@ class ToolLaunch(object):
         :rtype: dict
         """
         if type(configurations) is not dict:
-            raise RuntimeError("'configurations' argument must be dictionary of config items")
+            raise RuntimeError(
+                "'configurations' argument must be dictionary of config items"
+            )
 
         configurations["tool_type"] = tool_type
         configurations["name"] = name
@@ -169,20 +181,21 @@ class ToolLaunch(object):
             "static_path": "auto",
             "static_handler_class": ExecutiveStaticFileHandler,
             "static_handler_args": {"debug": 2},
-
             "template_loader": ExecutiveTemplateLoader(),
-
             "compiled_template_cache": False,
             "static_hash_cache": False,
             "serve_traceback": True,
-
             "cookie_secret": "tool_utility_run",
         }
         endpoints = [
             (r"/", MainHandler, {"util": self}),
             (r"/tool/ui/([A-Za-z0-9\_]+)", ToolPage, {"util": self}),
             (r"/shutdown", ShutdownHandler, {"util": self}),
-            (r"/socket", StationSocket, {"socket_manager": self.socket_manager, "stationuuid": get_uuid()})
+            (
+                r"/socket",
+                StationSocket,
+                {"socket_manager": self.socket_manager, "stationuuid": get_uuid()},
+            ),
         ]
         endpoints.extend(self.obj.get_endpoints())
         self.web_app = web.Application(endpoints, **settings)
@@ -199,10 +212,10 @@ class ToolLaunch(object):
         if self.obj is None:
             return
 
-        emit_event(InfoEvents.TOOL_UPDATE, {
-            "source": "Toolbox",
-            "status": self.obj.get_status()
-        })
+        emit_event(
+            InfoEvents.TOOL_UPDATE,
+            {"source": "Toolbox", "status": self.obj.get_status()},
+        )
 
     def tool_run(self, port=8888, browser=False, polling_period=5):
         """
@@ -236,7 +249,10 @@ class ToolLaunch(object):
         log.info("Launching status checking loop")
         self.io_loop = IoLoop().current()
         self.io_loop.spawn_callback(
-            lambda: self.status_loop(self.tool_id, self.tool_instance["object"], polling_period))
+            lambda: self.status_loop(
+                self.tool_id, self.tool_instance["object"], polling_period
+            )
+        )
 
         if browser:
             register_for_event("ToolLaunch", InfoEvents.SERVER_STARTED, self.on_startup)
@@ -292,15 +308,22 @@ class ToolLaunch(object):
                     try:
                         obj_command = kwargs.pop("command")
                     except Exception as e:
-                        log.debug(1, "Exception in on_ui_command arguments {0}: {1}".format(
-                            kwargs, e))
+                        log.debug(
+                            1,
+                            "Exception in on_ui_command arguments {0}: {1}".format(
+                                kwargs, e
+                            ),
+                        )
                         continue
                     log.debug(3, "ui_command - " + obj_id + ": " + obj_command)
                     try:
                         self.obj.on_ui_command(obj_command, **kwargs)
                     except Exception as e:
-                        log.debug(1, "Exception in 'on_ui_command' calling '{0}' of "
-                                     "'{1}': {2}".format(obj_command, obj_id, e))
+                        log.debug(
+                            1,
+                            "Exception in 'on_ui_command' calling '{0}' of "
+                            "'{1}': {2}".format(obj_command, obj_id, e),
+                        )
             for source in to_delete:
                 del messages[source]
 
@@ -327,6 +350,7 @@ class ToolLaunch(object):
 
 class MainHandler(ExecutiveHandler):
     """ Serve tool UI """
+
     util = None
 
     def initialize(self, **kwargs):
@@ -337,8 +361,13 @@ class MainHandler(ExecutiveHandler):
         websocket = "{0}/socket".format(self.util.port)
         websockettype = "ws"
 
-        self.render("ui/html/tool_util.html", tool_name=self.util.tool_name, tool_id=self.util.tool_id,
-                    websocket=websocket, websockettype=websockettype)
+        self.render(
+            "ui/html/tool_util.html",
+            tool_name=self.util.tool_name,
+            tool_id=self.util.tool_id,
+            websocket=websocket,
+            websockettype=websockettype,
+        )
 
 
 class ToolPage(ExecutiveHandler):
@@ -348,11 +377,14 @@ class ToolPage(ExecutiveHandler):
         self.util = kwargs["util"]
 
     def get(self, tool_id):
-        self.render("tool/{0}/index.html".format(self.util.tool_type), tool_id=self.util.tool_id)
+        self.render(
+            "tool/{0}/index.html".format(self.util.tool_type), tool_id=self.util.tool_id
+        )
 
 
 class ShutdownHandler(ExecutiveHandler):
     """ Exit tool context """
+
     util = None
 
     def initialize(self, **kwargs):

@@ -17,21 +17,21 @@ setup(
               "stationexec.test", "stationexec.toolbox", "stationexec.utilities",
               "stationexec.web"],
     include_package_data=True,
-    author="Oculus PrPL Automation",
+    author="Meta Hardware Engineering",
     license="TBD",
-    url="https://www.oculus.com",
+    url="https://www.meta.com",
     description=("Station Exec is a light-weight, flexible software framework for"
                  "sequencing tasks and interacting with external data sources."),
     long_description=open("README.rst").read(),
     install_requires=[
         "addict",
-        "arrow == 0.17.0",
+        "arrow",
         "colorama",
         "pymysql",
         "setuptools",
         "simplejson",
         "sqlalchemy",
-        "tornado == 5.1.1",
+        "tornado",
         "wheel"
     ],
     entry_points={
@@ -49,6 +49,10 @@ setup(
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
-        "Programming Language :: Python :: 3.7"
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11"
     ]
 )

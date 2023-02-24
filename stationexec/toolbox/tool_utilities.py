@@ -37,42 +37,59 @@ def load_tool_object(tool_name, location=None, reload_mod=False):
                 # Force the module to be reloaded - in case code changed and the old version is cached
                 reload(mod)
             return mod
-        except (AttributeError, ImportError, FileNotFoundError):
-            raise ToolNotFound("Cannot locate tool '{0}'".format(module_name))
+        except (AttributeError, ImportError, FileNotFoundError) as err:
+            raise ToolNotFound("'{0}' tool error: {1}".format(module_name, err))
     else:
         try:
             if location == "external":
                 return config.remote_path_import(
                     os.path.join(config.get_all_paths()["tools_external"], tool_name),
-                    reload_mod)
+                    reload_mod,
+                )
             elif location == "internal":
                 return config.remote_path_import(
                     os.path.join(config.get_all_paths()["tools_internal"], tool_name),
-                    reload_mod)
+                    reload_mod,
+                )
+            elif location == "station":
+                tool_path = config.get_all_paths().get("tools_station_internal")
+                if tool_path:
+                    return config.remote_path_import(
+                        os.path.join(config.get_all_paths()["tools_station_internal"], tool_name),
+                        reload_mod,
+                    )
+                raise ToolNotFound(f"'{tool_name}' not found: station/tools directory does not exist")
             else:
                 raise Exception("Unknown load location: {0}".format(location))
-        except (ImportError, FileNotFoundError, AttributeError):
-            raise ToolNotFound("Cannot locate tool '{0}' in '{1}'".format(module_name, location))
+        except (ImportError, FileNotFoundError, AttributeError) as err:
+            raise ToolNotFound(
+                "'{0}' tool error in '{1}': {2}".format(module_name, location, err)
+            )
 
 
 def get_tool_path(tool):
     try:
-        packages = [entry_point.name for entry_point in pkg_resources.iter_entry_points("stationexec.tool")]
+        packages = [
+            entry_point.name
+            for entry_point in pkg_resources.iter_entry_points("stationexec.tool")
+        ]
         if tool in packages:
             spec = util.find_spec("{0}.{0}".format(tool))
             return os.path.dirname(spec.origin)
         else:
             raise AttributeError
-    except (AttributeError, ImportError):
+    except (AttributeError, ImportError) as err:
         external = os.path.join(config.get_all_paths()["tools_external"], tool, tool + ".py")
+        internal = os.path.join(config.get_all_paths()["tools_internal"], tool, tool + ".py")
+        station = os.path.join(config.get_all_paths()["tools_station_internal"], tool, tool + ".py")
         if os.path.exists(external):
             return os.path.dirname(external)
+        elif os.path.exists(internal):
+            return os.path.dirname(internal)
+        elif os.path.exists(station):
+            return os.path.dirname(station)
         else:
-            internal = os.path.join(config.get_all_paths()["tools_internal"], tool, tool + ".py")
-            if path_utils.exists(internal):
-                return os.path.dirname(internal)
-            else:
-                raise ToolNotFound("Cannot locate tool '{0}'".format(tool))
+            raise ToolNotFound("Cannot locate tool '{0}': {1}".format(tool, err))
 
 
 def list_all_available_tools():
@@ -81,16 +98,26 @@ def list_all_available_tools():
 
     :return:
     """
-    external_tools = config.get_modules_in_directory(config.get_all_paths()["tools_external"])
-    internal_tools = config.get_modules_in_directory(config.get_all_paths()["tools_internal"])
-    packages = [entry_point.name for entry_point in pkg_resources.iter_entry_points("stationexec.tool")]
+    external_tools = config.get_modules_in_directory(
+        config.get_all_paths()["tools_external"]
+    )
+    internal_tools = config.get_modules_in_directory(
+        config.get_all_paths()["tools_internal"]
+    )
+    packages = [
+        entry_point.name
+        for entry_point in pkg_resources.iter_entry_points("stationexec.tool")
+    ]
 
     return external_tools, internal_tools, packages
 
 
 def clean_old_editable_installs():
-    ex_eggs = [os.path.join(config.get_all_paths()["tools_external"], pth) for pth in
-               os.listdir(config.get_all_paths()["tools_external"]) if pth.endswith("egg-info")]
+    ex_eggs = [
+        os.path.join(config.get_all_paths()["tools_external"], pth)
+        for pth in os.listdir(config.get_all_paths()["tools_external"])
+        if pth.endswith("egg-info")
+    ]
     # Internal wheel building is disallowed for now
     # in_eggs = [os.path.join(config.get_all_paths()["tools_internal"], pth) for pth in
     #            os.listdir(config.get_all_paths()["tools_internal"]) if pth.endswith("egg-info")]
@@ -111,8 +138,11 @@ def build_package(package, debug=False, dev=False):
     if dev:
         try:
             if pkg_resources.working_set.by_key[pip_name]:
-                print("Package already installed as '{0}' - use pip to remove before creating new editable install"
-                      .format(pip_name))
+                print(
+                    "Package already installed as '{0}' - use pip to remove before creating new editable install".format(
+                        pip_name
+                    )
+                )
                 return
         except KeyError:
             pass
@@ -120,7 +150,11 @@ def build_package(package, debug=False, dev=False):
     try:
         tool = load_tool_object(package, "external")
     except ToolNotFound:
-        print("Unable to find and load tool '{0}' in '{1}'".format(package, tool_directory))
+        print(
+            "Unable to find and load tool '{0}' in '{1}'".format(
+                package, tool_directory
+            )
+        )
         return
     try:
         version = tool.version
@@ -147,9 +181,7 @@ def build_package(package, debug=False, dev=False):
         "include_package_data": True,
         "install_requires": dependencies,
         "classifiers": ["Framework :: stationexec"],
-        "entry_points": {
-            "stationexec.tool": ["{0} = {0}".format(package)]
-        },
+        "entry_points": {"stationexec.tool": ["{0} = {0}".format(package)]},
     }
 
     # Silence stderr - setuptools complains about this being an atypical setup (which it is by design)
@@ -176,10 +208,15 @@ def build_package(package, debug=False, dev=False):
         shutil.rmtree("build", ignore_errors=True)
 
     if dev:
-        print("Editable installation created for '{0}' as '{1}'".format(package, pip_name))
+        print(
+            "Editable installation created for '{0}' as '{1}'".format(package, pip_name)
+        )
     else:
-        print("Wheel package created for '{0}' in {1}".format(
-            package, os.path.join(tool_directory, "dist")))
+        print(
+            "Wheel package created for '{0}' in {1}".format(
+                package, os.path.join(tool_directory, "dist")
+            )
+        )
 
 
 if __name__ == "__main__":

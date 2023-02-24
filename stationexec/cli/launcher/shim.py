@@ -91,10 +91,7 @@ def launch_window():
     # Solutions to several problems herein inspired by those in Venster
     # https://github.com/toymachine/venster
     class RECT(ctypes.Structure):
-        _fields_ = [("left", LONG),
-                    ("top", LONG),
-                    ("right", LONG),
-                    ("bottom", LONG)]
+        _fields_ = [("left", LONG), ("top", LONG), ("right", LONG), ("bottom", LONG)]
 
     def dlg(hwnd, _uMsg, _wParam, _lParam):
         global dialog_handle
@@ -148,8 +145,9 @@ def find_station_to_launch():
 def main():
     try:
         parser = argparse.ArgumentParser(description="StationExec Setup")
-        parser.add_argument("--debug", help="Show debug log info", action="store_true",
-                            required=False)
+        parser.add_argument(
+            "--debug", help="Show debug log info", action="store_true", required=False
+        )
         # parser.add_argument("-i", help="Interactive installation - load into REPL", action="store_true",
         #                     required=False)
         args, _ = parser.parse_known_args(sys.argv[1:])
@@ -160,11 +158,17 @@ def main():
 
         is_64bits = sys.maxsize > 2 ** 32
         version = "python{0}{1}".format(sys.version_info.major, sys.version_info.minor)
-        version_long = "python{0}{1}{2}_{3}".format(sys.version_info.major, sys.version_info.minor,
-                                                    sys.version_info.micro, "64" if is_64bits else "32")
+        version_long = "python{0}{1}{2}_{3}".format(
+            sys.version_info.major,
+            sys.version_info.minor,
+            sys.version_info.micro,
+            "64" if is_64bits else "32",
+        )
 
         # Add environment variable to get path to the python executable (helpful for subprocess calls)
-        os.environ["__SE_EXE_PATH__"] = os.path.join(os.getcwd(), version_long, "python.exe")
+        os.environ["__SE_EXE_PATH__"] = os.path.join(
+            os.getcwd(), version_long, "python.exe"
+        )
 
         # if args.i:
         #     import code
@@ -178,11 +182,7 @@ def main():
         launch_window()
 
         _s = default_timer()
-        ignore = [
-            "{0}.dll".format(version),
-            "{0}.zip".format(version),
-            "_ctypes.pyd"
-        ]
+        ignore = ["{0}.dll".format(version), "{0}.zip".format(version), "_ctypes.pyd"]
         compare_and_extract(version_long, debug, ignore=ignore)
         _e = default_timer()
         if debug:
@@ -194,12 +194,21 @@ def main():
 
         # Run stationexec cli se_setup if main path doesn't exist
         # If it does exist, re-install everything except for Log and Data folders
-        cli_setup(force=False, silent=True, refresh_install=True,
-                  alt=os.path.join(os.getcwd(), "work_dir", "stationexec"))
+        cli_setup(
+            force=False,
+            silent=True,
+            refresh_install=True,
+            alt=os.path.join(os.getcwd(), "work_dir", "stationexec"),
+        )
 
         # Copy station and tools to proper stationexec folder
         _s = default_timer()
-        extract("src", os.path.join("work_dir", "stationexec"), to_extract=None, extract_all=True)
+        extract(
+            "src",
+            os.path.join("work_dir", "stationexec"),
+            to_extract=None,
+            extract_all=True,
+        )
         # Always remove src.zip for protection
         os.remove("src.zip")
         _e = default_timer()
@@ -219,6 +228,7 @@ def main():
 
         # Launch a monitoring process that will refresh the installation after the program exits
         from multiprocessing import Process, freeze_support, set_executable
+
         freeze_support()
         py_exe_path = os.path.abspath(os.path.join(version_long, "pythonw.exe"))
         set_executable(py_exe_path)
@@ -276,6 +286,7 @@ def _get_class_from_frame(fr):
 def process_monitor():
     from stationexec.cli.cli_tools import cli_setup
     from tornado.httpclient import HTTPRequest, HTTPClient, HTTPError
+
     request = HTTPRequest(
         url="http://localhost:8888/isalive",
         method="GET",
@@ -294,8 +305,12 @@ def process_monitor():
         except (HTTPError, RuntimeError, ConnectionResetError):
             com_errors += 1
         if com_errors >= max_com_errors:
-            cli_setup(force=False, silent=True, refresh_install=True,
-                      alt=os.path.join(os.getcwd(), "work_dir", "stationexec"))
+            cli_setup(
+                force=False,
+                silent=True,
+                refresh_install=True,
+                alt=os.path.join(os.getcwd(), "work_dir", "stationexec"),
+            )
             return
         time.sleep(1)
 

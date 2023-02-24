@@ -2,6 +2,7 @@
 
 # @lint-ignore-every PYTHON3COMPATIMPORTS1
 
+from stationexec.utilities.error_codes import ErrorCode
 
 class StationError(Exception):
     """ Custom exception to be thrown by Station """
@@ -74,3 +75,19 @@ class AbortException(Exception):
 
     def __init__(self):
         super(self.__class__, self).__init__()
+
+
+class ErrorCodeException(Exception):
+    """ Exception to pass error codes up from tools and operations to database """
+
+    def __init__(self, error_code: ErrorCode, debug_message=""):
+        """ Send error code to operation 
+            message is optional and may be included in the error_code object
+        """
+        self.error_code = error_code
+        if debug_message != "":
+            self.error_code.debug_message = debug_message
+    
+    def __str__(self):
+        return self.error_code.__str__()
+

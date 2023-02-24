@@ -14,8 +14,13 @@ import stationexec
 from stationexec.cli.generate import generate_tool, generate_station
 from stationexec.cli.launcher import package
 from stationexec.main import Main
-from stationexec.toolbox.tool_utilities import load_tool_object, \
-    list_all_available_tools, ToolNotFound, build_package, clean_old_editable_installs
+from stationexec.toolbox.tool_utilities import (
+    load_tool_object,
+    list_all_available_tools,
+    ToolNotFound,
+    build_package,
+    clean_old_editable_installs,
+)
 from stationexec.utilities import config
 from stationexec.utilities.colors import Colors
 from stationexec.utilities.path_utils import copy_file, copy_tree
@@ -27,7 +32,12 @@ def cli_hello():
 
     :return:
     """
-    default_app_root, _log_folder, _config_folder, _data_folder = config.get_default_paths()
+    (
+        default_app_root,
+        _log_folder,
+        _config_folder,
+        _data_folder,
+    ) = config.get_default_paths()
     if not os.path.exists(default_app_root):
         print("StationExec setup not complete - run 'se-setup' to finish setup")
         return
@@ -56,10 +66,19 @@ def cli_setup(force=False, silent=False, refresh_install=False, alt=None):
     if not (force is True or alt is not None):
         # Allow for direct call or call with vargs - ignore argparse if direct call args used
         parser = argparse.ArgumentParser(description="StationExec Setup")
-        parser.add_argument("--force", help="Overwrite installation if it exists", action="store_true",
-                            required=False)
-        parser.add_argument("--alt", help="Create installation in different directory", type=str, default="",
-                            required=False)
+        parser.add_argument(
+            "--force",
+            help="Overwrite installation if it exists",
+            action="store_true",
+            required=False,
+        )
+        parser.add_argument(
+            "--alt",
+            help="Create installation in different directory",
+            type=str,
+            default="",
+            required=False,
+        )
         args, _ = parser.parse_known_args(sys.argv[1:])
 
         force = args.force
@@ -70,7 +89,12 @@ def cli_setup(force=False, silent=False, refresh_install=False, alt=None):
 
     # Manually build app and module root paths - config file path method changes working directory,
     # which can mess with the target folder, making it difficult to delete
-    default_app_root, log_folder, config_folder, data_folder = config.get_default_paths()
+    (
+        default_app_root,
+        log_folder,
+        config_folder,
+        data_folder,
+    ) = config.get_default_paths()
     module_root_path = os.path.dirname(os.path.abspath(stationexec.__file__))
 
     template_path = os.path.join(module_root_path, "cli", "templates", "new_project")
@@ -104,8 +128,11 @@ def cli_setup(force=False, silent=False, refresh_install=False, alt=None):
     elif os.path.exists(default_app_root):
         if not force:
             if not silent:
-                print("Folder already exists at '{0}'. Run again with '--force' flag to overwrite".format(
-                    default_app_root))
+                print(
+                    "Folder already exists at '{0}'. Run again with '--force' flag to overwrite".format(
+                        default_app_root
+                    )
+                )
             return
         # Force install - remove old install
         shutil.rmtree(default_app_root, ignore_errors=True)
@@ -123,7 +150,12 @@ def cli_start():
 
     :return:
     """
-    default_app_root, _log_folder, _config_folder, _data_folder = config.get_default_paths()
+    (
+        default_app_root,
+        _log_folder,
+        _config_folder,
+        _data_folder,
+    ) = config.get_default_paths()
     if not os.path.exists(default_app_root):
         print("StationExec setup not complete - run 'se-setup' to finish setup")
         return
@@ -159,9 +191,15 @@ def cli_station():
         cli_start()
     elif arg == "list":
         stations = config.get_modules_in_directory(config.get_all_paths()["stations"])
-        stations = ["{0}{1}{2}".format(Colors.OKGREEN, station, Colors.ENDC) for station in stations]
-        print("Available Stations (launch station with 'se-start <station name>'): \n - {0}"
-              .format("\n - ".join(stations)))
+        stations = [
+            "{0}{1}{2}".format(Colors.OKGREEN, station, Colors.ENDC)
+            for station in stations
+        ]
+        print(
+            "Available Stations (launch station with 'se-start <station name>'): \n - {0}".format(
+                "\n - ".join(stations)
+            )
+        )
     elif arg == "build":
         if os.name != "nt":
             print("Station building is Windows only at this time.")
@@ -171,8 +209,11 @@ def cli_station():
             sys.argv.append("--help")
         parser = argparse.ArgumentParser(description="Station EXE Builder")
         parser.add_argument("station", help="Station to package into an executable")
-        parser.add_argument("--debug", help="Maintain the intermediate build files for debugging builds",
-                            action="store_true")
+        parser.add_argument(
+            "--debug",
+            help="Maintain the intermediate build files for debugging builds",
+            action="store_true",
+        )
         args, _ = parser.parse_known_args(sys.argv)
         package.main(args.station, args.debug)
 
@@ -201,28 +242,47 @@ def cli_tool():
     elif arg == "list":
         clean_old_editable_installs()
         external, internal, packages = list_all_available_tools()
-        external = ["{0}{1}{2}".format(Colors.OKGREEN, tool, Colors.ENDC) for tool in external]
-        internal = ["{0}{1}{2}".format(Colors.WARNING, tool, Colors.ENDC) for tool in internal]
-        packages = ["{0}{1}{2}".format(Colors.OKBLUE, tool, Colors.ENDC) for tool in packages]
+        external = [
+            "{0}{1}{2}".format(Colors.OKGREEN, tool, Colors.ENDC) for tool in external
+        ]
+        internal = [
+            "{0}{1}{2}".format(Colors.WARNING, tool, Colors.ENDC) for tool in internal
+        ]
+        packages = [
+            "{0}{1}{2}".format(Colors.OKBLUE, tool, Colors.ENDC) for tool in packages
+        ]
 
         packaged_text = Colors.OKBLUE + "packaged" + Colors.ENDC + " | "
         external_text = Colors.OKGREEN + "external" + Colors.ENDC + " | "
         internal_text = Colors.WARNING + "internal" + Colors.ENDC
 
-        print("Available Tools (launch tool tester with 'se-tool launch <tool name>'): \n "
-              " {1} {2} {3} \n - {0}".format("\n - ".join(packages + external + internal),
-                                             packaged_text, external_text, internal_text))
+        print(
+            "Available Tools (launch tool tester with 'se-tool launch <tool name>'): \n "
+            " {1} {2} {3} \n - {0}".format(
+                "\n - ".join(packages + external + internal),
+                packaged_text,
+                external_text,
+                internal_text,
+            )
+        )
     elif arg == "build":
         sys.argv = sys.argv[2:]
         if len(sys.argv) == 0:
             sys.argv.append("--help")
         parser = argparse.ArgumentParser(description="Tool Package Builder")
         parser.add_argument("tool", help="Tool to package into distributable wheel")
-        parser.add_argument("--debug", help="Maintain the intermediate build files for debugging builds",
-                            action="store_true")
-        parser.add_argument("-e", "--dev", help="Install as editable package for development "
-                                                "(links directly to source) - no wheel output",
-                            action="store_true")
+        parser.add_argument(
+            "--debug",
+            help="Maintain the intermediate build files for debugging builds",
+            action="store_true",
+        )
+        parser.add_argument(
+            "-e",
+            "--dev",
+            help="Install as editable package for development "
+            "(links directly to source) - no wheel output",
+            action="store_true",
+        )
         args, _ = parser.parse_known_args(sys.argv)
         build_package(args.tool, args.debug, args.dev)
 
@@ -235,7 +295,12 @@ def cli_which():
 
     :return:
     """
-    default_app_root, _log_folder, _config_folder, _data_folder = config.get_default_paths()
+    (
+        default_app_root,
+        _log_folder,
+        _config_folder,
+        _data_folder,
+    ) = config.get_default_paths()
     if not os.path.exists(default_app_root):
         print("StationExec setup not complete - run 'se-setup' to finish setup")
         return
@@ -261,13 +326,26 @@ def _cli_tool_launcher():
 
     parser = argparse.ArgumentParser(description="Tool Launcher")
     parser.add_argument("tool", help="Tool to launch")
-    parser.add_argument("-b", "--browser", help="Open new browser tab on tool launch",
-                        action="store_true")
-    parser.add_argument("-l", "--location", help="Specify location if multiples of same name tool exist",
-                        required=False, default=None)
-    parser.add_argument("--kwargs", help="'key:value' pair of configuration data - "
-                                         "add as many as desired",
-                        required=False, default=None, action="append")
+    parser.add_argument(
+        "-b",
+        "--browser",
+        help="Open new browser tab on tool launch",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-l",
+        "--location",
+        help="Specify location if multiples of same name tool exist",
+        required=False,
+        default=None,
+    )
+    parser.add_argument(
+        "--kwargs",
+        help="'key:value' pair of configuration data - " "add as many as desired",
+        required=False,
+        default=None,
+        action="append",
+    )
     args, _ = parser.parse_known_args(sys.argv)
 
     try:
@@ -282,8 +360,9 @@ def _cli_tool_launcher():
     # Load the tool module
     configurations = module.default_configurations
 
-    tool_config = tu.build_tool_dict(args.tool, disp, "{0}_1".format(args.tool),
-                                     configurations)
+    tool_config = tu.build_tool_dict(
+        args.tool, disp, "{0}_1".format(args.tool), configurations
+    )
     version = "unknown" if not hasattr(module, "version") else module.version
     tool_config["version"] = version
 

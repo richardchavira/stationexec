@@ -33,19 +33,37 @@ def register_for_event(source, event_enum, callback):
     global _known_events
     global __reg_callback
 
-    storage_event = isinstance(event_enum, StorageEvents) or isinstance(event_enum, RetrievalEvents)
+    storage_event = isinstance(event_enum, StorageEvents) or isinstance(
+        event_enum, RetrievalEvents
+    )
     if storage_event and __reg_callback is not None:
         # Tell DataStorage about Storage or Retrieval event registrations exclusively
         __reg_callback(source, event_enum, callback)
     else:
         _known_events[event_enum].append((source, event_enum, callback))
 
+def clear_event_subscribers(source, event_enum):
+    global _known_events
+    global __unreg_callback
+    global __reg_callback
+
+    storage_event = isinstance(event_enum, StorageEvents) or isinstance(
+        event_enum, RetrievalEvents
+    )
+    if storage_event and __reg_callback is not None:
+        log.warning("Clearing event subscribers for StorageEvents is not supported")
+    else:
+        for reg_source, reg_event, reg_callback in _known_events[event_enum]:
+            if reg_source == source:
+                _known_events[event_enum].remove((reg_source, reg_event, reg_callback))
 
 def unregister_from_event(source, event_enum, callback):
     global _known_events
     global __unreg_callback
 
-    storage_event = isinstance(event_enum, StorageEvents) or isinstance(event_enum, RetrievalEvents)
+    storage_event = isinstance(event_enum, StorageEvents) or isinstance(
+        event_enum, RetrievalEvents
+    )
     if storage_event and __reg_callback is not None:
         __unreg_callback(source, event_enum, callback)
     else:
@@ -60,7 +78,9 @@ def emit_event(event_enum, data_dict=None):
     if not data_dict:
         data_dict = {}
 
-    storage_event = isinstance(event_enum, StorageEvents) or isinstance(event_enum, RetrievalEvents)
+    storage_event = isinstance(event_enum, StorageEvents) or isinstance(
+        event_enum, RetrievalEvents
+    )
     if storage_event:
         if __trig_callback is None:
             return None
@@ -110,22 +130,25 @@ class StorageEvents(Enum):
     ON_DATA_STORE = 6
     ON_REGISTER_STATION = 7
     ON_UPDATE_STATION = 8
+    ON_REGISTER_STATION_LOCAL = 9
     ON_LOG_DATA = 11
     ON_MAINTENANCE_EVENT = 12
-
+    ON_ERROR_CODE = 13
+    ON_ADD_DUT = 14
 
 @unique
 class RetrievalEvents(Enum):
     GET_CUSTOM_DATA = 0
     GET_OPERATION_AVERAGE_DURATION = 1
     GET_STATION_DATA = 2
+    GET_STATION_DATA_LOCAL = 3
     GET_LOG_DATA = 6
     GET_MAINTENANCE_DATA = 7
     GET_SEQUENCES = 8
     GET_SEQUENCE_OPERATIONS = 9
     GET_SEQUENCE_RESULTS = 10
     GET_SEQUENCE_DATA = 11
-
+    GET_DUT_DATA = 12
 
 @unique
 class ActionEvents(Enum):
@@ -151,6 +174,9 @@ class InfoEvents(Enum):
     SEQUENCE_ABORTED = 4
     EMERGENCY_STOP = 5
     EMERGENCY_STOP_CLEARED = 6
+    USER_LOGGED_IN = 7
+    USER_LOGGED_OUT = 8
+    UNAUTHORIZED_ACCESS = 9
     WEBSOCKET_INCOMING = 10
     SEQUENCE_UPDATE = 11
     TOOL_UPDATE = 12
@@ -171,3 +197,9 @@ class InfoEvents(Enum):
     UI_DATA_REQUEST = 27
     UI_DATA_DELIVERY = 28
     STORAGE_COMPLETE = 29
+    REPEATER_UPDATE = 30
+    PLOTTER_DATA_UPDATE = 31
+    DUT_SERIAL_NUMBER_UPDATE = 32
+    ROUTING_DATA_UPDATE = 35
+    PASS_ERROR_CODE = 36
+    USER_INPUT_REQUEST = 37
